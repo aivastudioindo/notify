@@ -23,9 +23,8 @@ import kotlinx.coroutines.launch
 
 enum class NavDestination(val title: String) {
     ALL_NOTIFICATIONS("Semua Notifikasi"),
-    ANALYTICS("Statistik & Grafik"),
     CATEGORIES("Kategori Aplikasi"),
-    SETTINGS("Pengaturan & Privasi")
+    SETTINGS("Pengaturan")
 }
 
 enum class DateFilter(val label: String) {
@@ -64,22 +63,18 @@ class NotificationViewModel(application: Application) : AndroidViewModel(applica
     private val _isSelectionMode = MutableStateFlow(false)
     val isSelectionMode: StateFlow<Boolean> = _isSelectionMode.asStateFlow()
 
-    // Security & Vault Lock
+    // Security & App PIN Lock State
     private val _isVaultUnlocked = MutableStateFlow(!encryptionManager.isPinProtectionEnabled())
     val isVaultUnlocked: StateFlow<Boolean> = _isVaultUnlocked.asStateFlow()
 
     private val _isPinProtectionEnabled = MutableStateFlow(encryptionManager.isPinProtectionEnabled())
     val isPinProtectionEnabled: StateFlow<Boolean> = _isPinProtectionEnabled.asStateFlow()
 
-    private val _showPinDialog = MutableStateFlow(false)
+    private val _showPinDialog = MutableStateFlow(encryptionManager.isPinProtectionEnabled())
     val showPinDialog: StateFlow<Boolean> = _showPinDialog.asStateFlow()
 
     private val _pinDialogMode = MutableStateFlow<PinDialogMode>(PinDialogMode.UNLOCK)
     val pinDialogMode: StateFlow<PinDialogMode> = _pinDialogMode.asStateFlow()
-
-    // Theme Mode
-    private val _themeMode = MutableStateFlow(ThemeMode.SYSTEM)
-    val themeMode: StateFlow<ThemeMode> = _themeMode.asStateFlow()
 
     // Permission state
     private val _hasNotificationAccess = MutableStateFlow(false)
@@ -102,13 +97,6 @@ class NotificationViewModel(application: Application) : AndroidViewModel(applica
         initialValue = emptyList()
     )
 
-    // Analytics Summary Flow
-    val analyticsSummary: StateFlow<AnalyticsSummary> = repository.getAnalyticsSummary().stateIn(
-        scope = viewModelScope,
-        started = SharingStarted.WhileSubscribed(5000),
-        initialValue = AnalyticsSummary()
-    )
-
     // Distinct Apps
     val distinctApps: StateFlow<List<AppCountResult>> = repository.distinctAppsWithCount.stateIn(
         scope = viewModelScope,
@@ -125,6 +113,21 @@ class NotificationViewModel(application: Application) : AndroidViewModel(applica
 
     init {
         checkPermission()
+        if (encryptionManager.isPinProtectionEnabled()) {
+            _isVaultUnlocked.value = false
+            _showPinDialog.value = true
+            _pinDialogMode.value = PinDialogMode.UNLOCK
+        }
+    }
+
+    fun onAppResume() {
+        checkPermission()
+        if (encryptionManager.isPinProtectionEnabled()) {
+            _isPinProtectionEnabled.value = true
+            _isVaultUnlocked.value = false
+            _showPinDialog.value = true
+            _pinDialogMode.value = PinDialogMode.UNLOCK
+        }
     }
 
     fun checkPermission() {
@@ -234,20 +237,6 @@ class NotificationViewModel(application: Application) : AndroidViewModel(applica
             _selectedNotification.value = null
             clearSelection()
         }
-    }
-
-    fun insertSampleData() {
-        viewModelScope.launch {
-            repository.insertSampleData()
-        }
-    }
-
-    fun sendTestNotification(title: String, message: String, subText: String = "NotifVault Test") {
-        NotificationHelper.sendSimulatedNotification(context, title, message, subText)
-    }
-
-    fun setThemeMode(mode: ThemeMode) {
-        _themeMode.value = mode
     }
 
     // Security & PIN Vault

@@ -75,10 +75,10 @@ class NotificationRepository(
     }
 
     private fun mapToItem(entity: NotificationEntity): NotificationItem {
-        val title = encryptionManager.decrypt(entity.encryptedTitle, entity.iv)
-        val text = encryptionManager.decrypt(entity.encryptedText, entity.iv)
-        val subText = encryptionManager.decrypt(entity.encryptedSubText, entity.iv)
-        val bigText = encryptionManager.decrypt(entity.encryptedBigText, entity.iv)
+        val title = if (entity.iv.isEmpty()) entity.encryptedTitle else encryptionManager.decrypt(entity.encryptedTitle, entity.iv)
+        val text = if (entity.iv.isEmpty()) entity.encryptedText else encryptionManager.decrypt(entity.encryptedText, entity.iv)
+        val subText = if (entity.iv.isEmpty()) entity.encryptedSubText else encryptionManager.decrypt(entity.encryptedSubText, entity.iv)
+        val bigText = if (entity.iv.isEmpty()) entity.encryptedBigText else encryptionManager.decrypt(entity.encryptedBigText, entity.iv)
 
         return NotificationItem(
             id = entity.id,
@@ -302,48 +302,4 @@ class NotificationRepository(
             topApps = topApps
         )
     }
-
-    suspend fun insertSampleData() = withContext(Dispatchers.IO) {
-        val now = System.currentTimeMillis()
-        val hourMs = 3600_000L
-        val dayMs = 86400_000L
-
-        val samples = listOf(
-            SampleMock("com.whatsapp", "WhatsApp", "Budi Santoso", "Bro, besok jadi meeting proyek jam 10 pagi di kantor?", now - 5 * 60_000L, NotificationCategory.CHAT),
-            SampleMock("com.bca", "BCA Mobile", "Transfer Masuk", "Rekening 8271xxxx mendapat transfer Rp 1.500.000 dari SITI NURHALIZA. Saldo Anda saat ini Rp 4.250.000.", now - 25 * 60_000L, NotificationCategory.FINANCE),
-            SampleMock("com.shopee.id", "Shopee", "Flash Sale 80% Dimulai!", "Serbu gratis ongkir Rp0 dan diskon kilat gadget pilihan Anda sekarang juga!", now - 45 * 60_000L, NotificationCategory.SHOPPING),
-            SampleMock("com.instagram.android", "Instagram", "dina_lestari menyukai postingan Anda", "Foto Anda mendapat 42 suka baru hari ini.", now - 1 * hourMs, NotificationCategory.SOCIAL),
-            SampleMock("com.google.android.gm", "Gmail", "GitHub - Security Alert", "[Critical] New personal access token generated on your account notif-vault-dev.", now - 2 * hourMs, NotificationCategory.WORK_EMAIL),
-            SampleMock("com.telkomsel.mytelkomsel", "MyTelkomsel", "Kode Verifikasi (OTP)", "JANGAN BERIKAN KODE INI KE SIAPAPUN! Kode OTP login MyTelkomsel Anda adalah 749201 berlaku 5 menit.", now - 3 * hourMs, NotificationCategory.FINANCE),
-            SampleMock("org.telegram.messenger", "Telegram", "Komunitas Developer Android", "Rian: Ada rilis compose BOM terbaru yang lebih hemat memori nih kawan-kawan.", now - 4 * hourMs, NotificationCategory.CHAT),
-            SampleMock("com.tokopedia.tkpd", "Tokopedia", "Pesanan Sedang Dikirim", "Paket nomor resi TKP09827112 telah diserahkan kurir ke alamat tujuan.", now - 6 * hourMs, NotificationCategory.SHOPPING),
-            SampleMock("com.spotify.music", "Spotify", "Rilisan Musik Baru", "Artis favoritmu Tulus baru saja merilis single terbaru hari ini. Dengarkan sekarang!", now - 8 * hourMs, NotificationCategory.ENTERTAINMENT),
-            SampleMock("com.twitter.android", "X (Twitter)", "Trending Hari Ini", "#TechNews dan #Android15 menjadi topik terhangat di Indonesia dengan 120k postingan.", now - 10 * hourMs, NotificationCategory.SOCIAL),
-            SampleMock("com.slack", "Slack", "Product Team", "Sarah: Task sprint review telah diselesaikan dan diupdate di Jira board.", now - 1 * dayMs - 2 * hourMs, NotificationCategory.WORK_EMAIL),
-            SampleMock("id.dana", "DANA", "Pembayaran Berhasil", "Pembayaran QRIS sebesar Rp 25.000 di Kopi Kenangan berhasil. Sisa saldo DANA Rp 145.000.", now - 1 * dayMs - 5 * hourMs, NotificationCategory.FINANCE),
-            SampleMock("com.whatsapp", "WhatsApp", "Grup Keluarga Besar", "Ibu: Jangan lupa hari Minggu kumpul arisan ya anak-anak.", now - 2 * dayMs - 3 * hourMs, NotificationCategory.CHAT),
-            SampleMock("com.google.android.apps.messaging", "Pesan SMS", "BANK MANDIRI", "Info Transaksi Debit: Penarikan ATM Rp 500.000 di ATM Mandiri Sudirman. Saldo akhir Rp 3.120.000.", now - 3 * dayMs - 4 * hourMs, NotificationCategory.FINANCE),
-            SampleMock("com.zhiliaoapp.musically", "TikTok", "Video Viral Untuk Anda", "Lihat video tutorial resep masakan simpel yang ditonton 2.5 juta kali!", now - 4 * dayMs - 6 * hourMs, NotificationCategory.SOCIAL)
-        )
-
-        for (item in samples) {
-            saveNotification(
-                key = "${item.pkg}_${item.time}",
-                packageName = item.pkg,
-                appName = item.appName,
-                title = item.title,
-                text = item.text,
-                postTime = item.time
-            )
-        }
-    }
-
-    private data class SampleMock(
-        val pkg: String,
-        val appName: String,
-        val title: String,
-        val text: String,
-        val time: Long,
-        val category: NotificationCategory
-    )
 }

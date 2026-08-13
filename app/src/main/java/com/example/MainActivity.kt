@@ -17,7 +17,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Analytics
 import androidx.compose.material.icons.filled.Category
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.LockOpen
@@ -51,7 +50,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.ui.AnalyticsScreen
 import com.example.ui.CategoriesScreen
 import com.example.ui.HomeScreen
 import com.example.ui.NavDestination
@@ -61,14 +59,12 @@ import com.example.ui.SettingsScreen
 import com.example.ui.components.AppDrawerContent
 import com.example.ui.components.NotificationDetailDialog
 import com.example.ui.components.PinAuthDialog
-import com.example.ui.theme.MinimalBorder
 import com.example.ui.theme.MinimalCardBackground
 import com.example.ui.theme.MinimalDarkBackground
 import com.example.ui.theme.MinimalLavenderPrimary
 import com.example.ui.theme.MinimalSurfaceElevated
 import com.example.ui.theme.MinimalTextMuted
 import com.example.ui.theme.MinimalTextPrimary
-import com.example.ui.theme.MinimalTextSecondary
 import com.example.ui.theme.NotifVaultTheme
 import kotlinx.coroutines.launch
 
@@ -81,9 +77,7 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
 
         setContent {
-            val themeMode by viewModel.themeMode.collectAsState()
-
-            NotifVaultTheme(themeMode = themeMode) {
+            NotifVaultTheme {
                 NotifVaultApp(viewModel = viewModel)
             }
         }
@@ -91,7 +85,7 @@ class MainActivity : ComponentActivity() {
 
     override fun onResume() {
         super.onResume()
-        viewModel.checkPermission()
+        viewModel.onAppResume()
     }
 }
 
@@ -109,10 +103,8 @@ fun NotifVaultApp(viewModel: NotificationViewModel) {
     val showPinDialog by viewModel.showPinDialog.collectAsState()
     val pinDialogMode by viewModel.pinDialogMode.collectAsState()
     val hasNotificationAccess by viewModel.hasNotificationAccess.collectAsState()
-    val analyticsSummary by viewModel.analyticsSummary.collectAsState()
     val categoryCounts by viewModel.categoryCounts.collectAsState()
     val distinctApps by viewModel.distinctApps.collectAsState()
-    val themeMode by viewModel.themeMode.collectAsState()
 
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
     val coroutineScope = rememberCoroutineScope()
@@ -160,7 +152,6 @@ fun NotifVaultApp(viewModel: NotificationViewModel) {
                                 Icon(
                                     imageVector = when (dest) {
                                         NavDestination.ALL_NOTIFICATIONS -> Icons.Default.Notifications
-                                        NavDestination.ANALYTICS -> Icons.Default.Analytics
                                         NavDestination.CATEGORIES -> Icons.Default.Category
                                         NavDestination.SETTINGS -> Icons.Default.Settings
                                     },
@@ -195,10 +186,8 @@ fun NotifVaultApp(viewModel: NotificationViewModel) {
                         isVaultUnlocked = isVaultUnlocked,
                         isPinProtectionEnabled = isPinProtectionEnabled,
                         hasNotificationAccess = hasNotificationAccess,
-                        analyticsSummary = analyticsSummary,
                         categoryCounts = categoryCounts,
                         distinctApps = distinctApps,
-                        themeMode = themeMode,
                         onOpenDrawer = { /* Tablet uses rail */ },
                         showHamburger = false,
                         viewModel = viewModel
@@ -217,7 +206,7 @@ fun NotifVaultApp(viewModel: NotificationViewModel) {
                         AppDrawerContent(
                             currentDestination = currentDest,
                             hasNotificationAccess = hasNotificationAccess,
-                            totalRecorded = analyticsSummary.totalRecorded,
+                            totalRecorded = notifications.size,
                             onSelectDestination = { dest -> viewModel.setDestination(dest) },
                             onSelectCategoryFilter = { cat -> viewModel.selectCategoryFilter(cat) },
                             onCloseDrawer = { coroutineScope.launch { drawerState.close() } }
@@ -234,10 +223,8 @@ fun NotifVaultApp(viewModel: NotificationViewModel) {
                     isVaultUnlocked = isVaultUnlocked,
                     isPinProtectionEnabled = isPinProtectionEnabled,
                     hasNotificationAccess = hasNotificationAccess,
-                    analyticsSummary = analyticsSummary,
                     categoryCounts = categoryCounts,
                     distinctApps = distinctApps,
-                    themeMode = themeMode,
                     onOpenDrawer = { coroutineScope.launch { drawerState.open() } },
                     showHamburger = true,
                     viewModel = viewModel
@@ -256,11 +243,16 @@ fun NotifVaultApp(viewModel: NotificationViewModel) {
         )
     }
 
-    // PIN Authentication Dialog
+    // PIN Authentication Dialog / App Lock
     if (showPinDialog) {
         PinAuthDialog(
             mode = pinDialogMode,
-            onDismiss = { viewModel.dismissPinDialog() },
+            onDismiss = {
+                // If vault is unlocked or mode is set new, allow dismiss; if locked, require pin
+                if (isVaultUnlocked || pinDialogMode == PinDialogMode.SET_NEW) {
+                    viewModel.dismissPinDialog()
+                }
+            },
             onPinSubmit = { pin -> viewModel.unlockVault(pin) },
             onSetNewPin = { pin -> viewModel.setNewPin(pin) }
         )
@@ -278,10 +270,8 @@ private fun AppMainScaffold(
     isVaultUnlocked: Boolean,
     isPinProtectionEnabled: Boolean,
     hasNotificationAccess: Boolean,
-    analyticsSummary: com.example.data.model.AnalyticsSummary,
     categoryCounts: List<com.example.data.local.CategoryCountResult>,
     distinctApps: List<com.example.data.local.AppCountResult>,
-    themeMode: com.example.ui.theme.ThemeMode,
     onOpenDrawer: () -> Unit,
     showHamburger: Boolean,
     viewModel: NotificationViewModel
@@ -321,7 +311,7 @@ private fun AppMainScaffold(
                         ) {
                             Icon(
                                 imageVector = if (isVaultUnlocked) Icons.Default.LockOpen else Icons.Default.Lock,
-                                contentDescription = if (isVaultUnlocked) "Kunci Brankas" else "Buka Brankas",
+                                contentDescription = if (isVaultUnlocked) "Kunci Aplikasi" else "Buka Aplikasi",
                                 tint = if (isVaultUnlocked) MinimalTextMuted else MinimalLavenderPrimary,
                                 modifier = Modifier.size(20.dp)
                             )
@@ -366,12 +356,6 @@ private fun AppMainScaffold(
                     )
                 }
 
-                NavDestination.ANALYTICS -> {
-                    AnalyticsScreen(
-                        analyticsSummary = analyticsSummary
-                    )
-                }
-
                 NavDestination.CATEGORIES -> {
                     CategoriesScreen(
                         categoryCounts = categoryCounts,
@@ -394,16 +378,10 @@ private fun AppMainScaffold(
                         hasNotificationAccess = hasNotificationAccess,
                         isPinProtectionEnabled = isPinProtectionEnabled,
                         isVaultUnlocked = isVaultUnlocked,
-                        themeMode = themeMode,
                         onOpenNotificationSettings = { viewModel.openNotificationSettings() },
                         onOpenSetPinDialog = { viewModel.openSetPinDialog() },
                         onDisablePin = { viewModel.disablePinProtection() },
                         onLockVault = { viewModel.lockVault() },
-                        onSetThemeMode = { viewModel.setThemeMode(it) },
-                        onSendTestNotification = { title, msg, sub ->
-                            viewModel.sendTestNotification(title, msg, sub)
-                        },
-                        onInsertSampleData = { viewModel.insertSampleData() },
                         onClearAllData = { viewModel.clearAll() }
                     )
                 }

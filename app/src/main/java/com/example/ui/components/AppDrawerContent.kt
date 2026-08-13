@@ -176,26 +176,6 @@ fun AppDrawerContent(
             )
 
             NavigationDrawerItem(
-                label = { Text("Statistik & Grafik", fontWeight = FontWeight.Medium) },
-                icon = { Icon(Icons.Default.Analytics, contentDescription = null) },
-                selected = currentDestination == NavDestination.ANALYTICS,
-                onClick = {
-                    onSelectDestination(NavDestination.ANALYTICS)
-                    onCloseDrawer()
-                },
-                colors = NavigationDrawerItemDefaults.colors(
-                    selectedContainerColor = MinimalSurfaceElevated,
-                    selectedIconColor = MinimalLavenderPrimary,
-                    selectedTextColor = MinimalLavenderPrimary,
-                    unselectedContainerColor = Color.Transparent,
-                    unselectedIconColor = MinimalTextSecondary,
-                    unselectedTextColor = MinimalTextSecondary
-                ),
-                shape = RoundedCornerShape(12.dp),
-                modifier = Modifier.padding(vertical = 2.dp)
-            )
-
-            NavigationDrawerItem(
                 label = { Text("Kategori & Aplikasi", fontWeight = FontWeight.Medium) },
                 icon = { Icon(Icons.Default.Category, contentDescription = null) },
                 selected = currentDestination == NavDestination.CATEGORIES,
@@ -216,7 +196,7 @@ fun AppDrawerContent(
             )
 
             NavigationDrawerItem(
-                label = { Text("Pengaturan & Privasi", fontWeight = FontWeight.Medium) },
+                label = { Text("Pengaturan", fontWeight = FontWeight.Medium) },
                 icon = { Icon(Icons.Default.Settings, contentDescription = null) },
                 selected = currentDestination == NavDestination.SETTINGS,
                 onClick = {
@@ -293,7 +273,7 @@ fun AppDrawerContent(
         Spacer(modifier = Modifier.weight(1f))
         Spacer(modifier = Modifier.height(16.dp))
 
-        // Footer Security Banner
+        // Footer App Info
         Surface(
             color = MinimalSurfaceElevated,
             modifier = Modifier
@@ -315,14 +295,14 @@ fun AppDrawerContent(
                 Spacer(modifier = Modifier.width(10.dp))
                 Column {
                     Text(
-                        text = "AES-256 BIT ENCRYPTED",
+                        text = "NOTIVAULT LITE",
                         style = MaterialTheme.typography.labelSmall,
                         fontWeight = FontWeight.Bold,
                         letterSpacing = 0.5.sp,
                         color = MinimalLavenderPrimary
                     )
                     Text(
-                        text = "Data lokal tersimpan privat",
+                        text = "Aplikasi cepat & responsif",
                         style = MaterialTheme.typography.labelSmall,
                         fontSize = 10.sp,
                         color = MinimalTextSecondary

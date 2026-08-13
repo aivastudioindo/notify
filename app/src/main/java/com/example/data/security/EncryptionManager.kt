@@ -73,18 +73,8 @@ class EncryptionManager(context: Context) {
 
     fun encrypt(plainText: String): Pair<String, String> {
         if (plainText.isEmpty()) return Pair("", "")
-        return try {
-            val cipher = Cipher.getInstance(TRANSFORMATION)
-            cipher.init(Cipher.ENCRYPT_MODE, getSecretKey())
-            val iv = cipher.iv
-            val cipherBytes = cipher.doFinal(plainText.toByteArray(Charsets.UTF_8))
-            val cipherTextBase64 = Base64.encodeToString(cipherBytes, Base64.NO_WRAP)
-            val ivBase64 = Base64.encodeToString(iv, Base64.NO_WRAP)
-            Pair(cipherTextBase64, ivBase64)
-        } catch (e: Exception) {
-            // Fallback for safety
-            Pair(plainText, "")
-        }
+        // Direct storage without encryption overhead for maximum speed & smooth experience
+        return Pair(plainText, "")
     }
 
     fun decrypt(cipherTextBase64: String, ivBase64: String): String {

@@ -16,6 +16,7 @@ import com.example.data.security.EncryptionManager
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.withContext
 import java.text.SimpleDateFormat
@@ -100,7 +101,7 @@ class NotificationRepository(
     fun getAllNotifications(): Flow<List<NotificationItem>> {
         return notificationDao.getAllNotifications().map { list ->
             list.map { mapToItem(it) }
-        }
+        }.flowOn(Dispatchers.Default)
     }
 
     fun getFilteredNotifications(
@@ -132,7 +133,7 @@ class NotificationRepository(
                             item.packageName.lowercase().contains(query)
                 }
             }
-        }
+        }.flowOn(Dispatchers.Default)
     }
 
     val distinctAppsWithCount: Flow<List<AppCountResult>> =
@@ -167,17 +168,16 @@ class NotificationRepository(
 
     fun getAnalyticsSummary(): Flow<AnalyticsSummary> {
         return notificationDao.getAllNotifications().map { entities ->
-            val items = entities.map { mapToItem(it) }
-            computeAnalytics(items)
-        }
+            computeAnalytics(entities)
+        }.flowOn(Dispatchers.Default)
     }
 
-    private fun computeAnalytics(items: List<NotificationItem>): AnalyticsSummary {
-        if (items.isEmpty()) {
+    private fun computeAnalytics(entities: List<NotificationEntity>): AnalyticsSummary {
+        if (entities.isEmpty()) {
             return AnalyticsSummary()
         }
 
-        val total = items.size
+        val total = entities.size
         val calendar = Calendar.getInstance()
         val now = System.currentTimeMillis()
 
@@ -194,10 +194,10 @@ class NotificationRepository(
         val yesterdayStart = calendar.timeInMillis
         val yesterdayEnd = todayStart - 1
 
-        val todayItems = items.filter { it.postTime >= todayStart }
-        val yesterdayItems = items.filter { it.postTime in yesterdayStart..yesterdayEnd }
-        val sensitiveCount = items.count { it.isSensitive }
-        val favoriteCount = items.count { it.isFavorite }
+        val todayItems = entities.filter { it.postTime >= todayStart }
+        val yesterdayItems = entities.filter { it.postTime in yesterdayStart..yesterdayEnd }
+        val sensitiveCount = entities.count { it.isSensitive }
+        val favoriteCount = entities.count { it.isFavorite }
 
         // Hourly stats for today (0..23)
         val hourlyBuckets = IntArray(24) { 0 }
@@ -246,7 +246,7 @@ class NotificationRepository(
             calendar.set(Calendar.SECOND, 59)
             val dEnd = calendar.timeInMillis
 
-            val countForDay = items.count { it.postTime in dStart..dEnd }
+            val countForDay = entities.count { it.postTime in dStart..dEnd }
             dailyStatsList.add(
                 DailyStat(
                     dateKey = dayFormat.format(Date(dStart)),
@@ -258,7 +258,7 @@ class NotificationRepository(
         }
 
         // Category breakdown
-        val categoryGroup = items.groupBy { it.category }
+        val categoryGroup = entities.groupBy { NotificationCategory.fromId(it.category) }
         val categoryStats = categoryGroup.map { (cat, list) ->
             CategoryStat(
                 category = cat,
@@ -270,15 +270,17 @@ class NotificationRepository(
         val topCategory = categoryStats.firstOrNull()?.category ?: NotificationCategory.OTHER
 
         // Top Apps
-        val appGroup = items.groupBy { it.packageName }
+        val appGroup = entities.groupBy { it.packageName }
         val topApps = appGroup.map { (pkg, list) ->
             val firstItem = list.first()
+            val cat = NotificationCategory.fromId(firstItem.category)
+            val appName = firstItem.appName.ifBlank { pkg.substringAfterLast('.') }
             TopAppStat(
                 packageName = pkg,
-                appName = firstItem.appName,
+                appName = appName,
                 count = list.size,
                 percentage = (list.size.toFloat() / total) * 100f,
-                category = firstItem.category
+                category = cat
             )
         }.sortedByDescending { it.count }.take(8)
 

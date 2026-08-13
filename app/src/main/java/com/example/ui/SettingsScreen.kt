@@ -465,19 +465,6 @@ fun SettingsScreen(
                             Text("Chat WA", style = MaterialTheme.typography.labelSmall, color = MinimalTextPrimary)
                         }
                     }
-
-                    Spacer(modifier = Modifier.height(8.dp))
-
-                    OutlinedButton(
-                        onClick = onInsertSampleData,
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(12.dp),
-                        border = BorderStroke(1.dp, MinimalBorder)
-                    ) {
-                        Icon(Icons.Default.Refresh, contentDescription = null, tint = MinimalTextPrimary, modifier = Modifier.size(16.dp))
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text("Muat Data Sampel Historis (Grafik Lengkap)", style = MaterialTheme.typography.labelMedium, color = MinimalTextPrimary)
-                    }
                 }
             }
         }

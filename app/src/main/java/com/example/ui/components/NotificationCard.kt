@@ -295,6 +295,18 @@ fun NotificationCard(
     }
 }
 
+private val timeFormatThreadLocal = object : ThreadLocal<SimpleDateFormat>() {
+    override fun initialValue(): SimpleDateFormat {
+        return SimpleDateFormat("hh:mm a", Locale.US)
+    }
+}
+
+private val dateTimeFormatThreadLocal = object : ThreadLocal<SimpleDateFormat>() {
+    override fun initialValue(): SimpleDateFormat {
+        return SimpleDateFormat("MMM dd, hh:mm a", Locale.US)
+    }
+}
+
 private fun formatTimestamp(timeMs: Long): String {
     val now = System.currentTimeMillis()
     val diff = now - timeMs
@@ -302,9 +314,9 @@ private fun formatTimestamp(timeMs: Long): String {
     return when {
         diff < 60_000L -> "Just now"
         diff < 3600_000L -> "${diff / 60_000L}m ago"
-        diff < 86400_000L -> SimpleDateFormat("hh:mm a", Locale.US).format(Date(timeMs))
-        diff < 2 * 86400_000L -> "Yesterday " + SimpleDateFormat("hh:mm a", Locale.US).format(Date(timeMs))
-        else -> SimpleDateFormat("MMM dd, hh:mm a", Locale.US).format(Date(timeMs))
+        diff < 86400_000L -> timeFormatThreadLocal.get()?.format(Date(timeMs)) ?: ""
+        diff < 2 * 86400_000L -> "Yesterday " + (timeFormatThreadLocal.get()?.format(Date(timeMs)) ?: "")
+        else -> dateTimeFormatThreadLocal.get()?.format(Date(timeMs)) ?: ""
     }
 }
 

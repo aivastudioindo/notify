@@ -67,7 +67,8 @@ fun AnalyticsScreen(
         item {
             DailyVolumeHeroCard(
                 dailyStats = analyticsSummary.dailyStats,
-                totalToday = analyticsSummary.todayCount
+                totalToday = analyticsSummary.todayCount,
+                yesterdayCount = analyticsSummary.yesterdayCount
             )
         }
 

@@ -125,14 +125,6 @@ class NotificationViewModel(application: Application) : AndroidViewModel(applica
 
     init {
         checkPermission()
-        // Check if DB is empty on first launch and populate sample data so graphs look vibrant immediately
-        viewModelScope.launch {
-            repository.getAllNotifications().collect { list ->
-                if (list.isEmpty()) {
-                    repository.insertSampleData()
-                }
-            }
-        }
     }
 
     fun checkPermission() {

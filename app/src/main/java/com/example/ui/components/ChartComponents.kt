@@ -71,16 +71,26 @@ import kotlin.math.max
 @Composable
 fun DailyVolumeHeroCard(
     dailyStats: List<DailyStat>,
-    totalToday: Int = 124,
-    percentChange: String = "+12% from yesterday",
+    totalToday: Int = 0,
+    yesterdayCount: Int = 0,
     modifier: Modifier = Modifier
 ) {
     val lavender = MinimalLavenderPrimary
     val barInactive = Color(0xFF49454F)
 
-    // Fallback data if dailyStats is empty
-    val days = listOf("Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun")
-    val defaultHeights = listOf(0.40f, 0.60f, 0.35f, 0.85f, 1.0f, 0.70f, 0.55f)
+    val percentChangeStr = remember(totalToday, yesterdayCount) {
+        if (yesterdayCount > 0) {
+            val change = ((totalToday - yesterdayCount).toFloat() / yesterdayCount) * 100f
+            val sign = if (change >= 0) "+" else ""
+            String.format(java.util.Locale.US, "%s%.0f%% vs kemarin", sign, change)
+        } else if (totalToday > 0) {
+            "+100% vs kemarin"
+        } else {
+            "0% vs kemarin"
+        }
+    }
+
+    val maxCount = remember(dailyStats) { max(1, dailyStats.maxOfOrNull { it.count } ?: 1) }
 
     Card(
         modifier = modifier.fillMaxWidth(),
@@ -102,7 +112,7 @@ fun DailyVolumeHeroCard(
             ) {
                 Column {
                     Text(
-                        text = "DAILY VOLUME",
+                        text = "VOLUME HARIAN",
                         style = MaterialTheme.typography.labelSmall,
                         fontWeight = FontWeight.Bold,
                         letterSpacing = 1.sp,
@@ -118,7 +128,7 @@ fun DailyVolumeHeroCard(
                         )
                         Spacer(modifier = Modifier.width(6.dp))
                         Text(
-                            text = "alerts",
+                            text = "notifikasi",
                             style = MaterialTheme.typography.bodySmall,
                             color = MinimalTextSecondary.copy(alpha = 0.7f),
                             modifier = Modifier.padding(bottom = 4.dp)
@@ -131,7 +141,7 @@ fun DailyVolumeHeroCard(
                     modifier = Modifier.padding(top = 4.dp)
                 ) {
                     Text(
-                        text = percentChange,
+                        text = percentChangeStr,
                         style = MaterialTheme.typography.labelSmall,
                         fontWeight = FontWeight.Medium,
                         color = lavender
@@ -139,58 +149,67 @@ fun DailyVolumeHeroCard(
                 }
             }
 
-            // Minimal Bar Columns
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(84.dp)
-                    .padding(horizontal = 4.dp),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalAlignment = Alignment.Bottom
-            ) {
-                days.forEachIndexed { index, day ->
-                    val heightRatio = if (dailyStats.size >= 7) {
-                        val maxCount = max(1, dailyStats.maxOf { it.count })
-                        (dailyStats.getOrNull(index)?.count?.toFloat() ?: 1f) / maxCount
-                    } else {
-                        defaultHeights.getOrElse(index) { 0.5f }
-                    }
+            if (dailyStats.isNotEmpty()) {
+                // Minimal Bar Columns
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(84.dp)
+                        .padding(horizontal = 4.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.Bottom
+                ) {
+                    dailyStats.forEachIndexed { index, stat ->
+                        val heightRatio = if (stat.count > 0) (stat.count.toFloat() / maxCount) else 0.08f
+                        val isToday = index == dailyStats.size - 1
 
-                    val isHighlighted = index == 4 // Active Friday / Current day peak
-
-                    Column(
-                        modifier = Modifier
-                            .weight(1f)
-                            .fillMaxHeight(),
-                        verticalArrangement = Arrangement.Bottom,
-                        horizontalAlignment = Alignment.CenterHorizontally
-                    ) {
-                        Box(
+                        Column(
                             modifier = Modifier
-                                .fillMaxWidth()
-                                .fillMaxHeight(heightRatio.coerceIn(0.15f, 1f))
-                                .clip(RoundedCornerShape(topStart = 8.dp, topEnd = 8.dp))
-                                .background(if (isHighlighted) lavender else barInactive)
+                                .weight(1f)
+                                .fillMaxHeight(),
+                            verticalArrangement = Arrangement.Bottom,
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .fillMaxHeight(heightRatio.coerceIn(0.08f, 1f))
+                                    .clip(RoundedCornerShape(topStart = 8.dp, topEnd = 8.dp))
+                                    .background(if (isToday) lavender else barInactive)
+                            )
+                        }
+                    }
+                }
+
+                // Days of week labels
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 2.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    dailyStats.forEachIndexed { index, stat ->
+                        val isToday = index == dailyStats.size - 1
+                        Text(
+                            text = stat.dayName,
+                            style = MaterialTheme.typography.labelSmall,
+                            fontSize = 10.sp,
+                            fontWeight = if (isToday) FontWeight.Bold else FontWeight.Normal,
+                            color = if (isToday) lavender else MinimalTextMuted
                         )
                     }
                 }
-            }
-
-            // Days of week labels
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 2.dp),
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                days.forEachIndexed { index, day ->
-                    val isHighlighted = index == 4
+            } else {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(80.dp),
+                    contentAlignment = Alignment.Center
+                ) {
                     Text(
-                        text = day,
-                        style = MaterialTheme.typography.labelSmall,
-                        fontSize = 10.sp,
-                        fontWeight = if (isHighlighted) FontWeight.Bold else FontWeight.Normal,
-                        color = if (isHighlighted) lavender else MinimalTextMuted
+                        text = "Belum ada riwayat aktivitas harian",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MinimalTextMuted
                     )
                 }
             }

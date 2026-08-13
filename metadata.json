@@ -1,0 +1,7 @@
+{
+  "name": "NotifVault",
+  "description": "Aplikasi perekam riwayat notifikasi otomatis, kategorisasi pintar, pencarian cepat, statistik grafik harian, enkripsi data privasi, dan antarmuka responsif modern.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
+

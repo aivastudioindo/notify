@@ -1,6 +1,6 @@
 {
-  "name": "NotifVault",
-  "description": "Aplikasi perekam riwayat notifikasi otomatis, kategorisasi pintar, pencarian cepat, statistik grafik harian, enkripsi data privasi, dan antarmuka responsif modern.",
+  "name": "Famly",
+  "description": "Aplikasi Parental Control modern untuk memantau keselamatan, notifikasi, dan lokasi aktivitas anak demi perlindungan keluarga.",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }

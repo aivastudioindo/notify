@@ -388,6 +388,7 @@ private fun AppMainScaffold(
                             viewModel.updateTelegramSettings(enabled, token, chatId, excludeSensitive)
                         },
                         onSendTelegramTestMessage = { viewModel.sendTelegramTestMessage() },
+                        onSendLocationToTelegram = { onResult -> viewModel.sendLocationToTelegram(onResult) },
                         onOpenNotificationSettings = { viewModel.openNotificationSettings() },
                         onOpenSetPinDialog = { viewModel.openSetPinDialog() },
                         onDisablePin = { viewModel.disablePinProtection() },

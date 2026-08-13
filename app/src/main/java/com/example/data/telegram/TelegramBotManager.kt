@@ -78,7 +78,7 @@ class TelegramBotManager(context: Context) {
         val timeStr = SimpleDateFormat("HH:mm:ss - dd MMM yyyy", Locale.getDefault()).format(Date(postTime))
         
         val message = StringBuilder().apply {
-            append("🔔 <b>[NotifVault] Notifikasi Baru</b>\n\n")
+            append("🔔 <b>[Famly] Notifikasi Baru</b>\n\n")
             append("📱 <b>Aplikasi:</b> ${escapeHtml(appName)}\n")
             if (title.isNotBlank()) {
                 append("📌 <b>Judul:</b> ${escapeHtml(title)}\n")
@@ -95,6 +95,29 @@ class TelegramBotManager(context: Context) {
         return@withContext executeSendMessage(token, chatId, message)
     }
 
+    suspend fun sendLocation(latitude: Double, longitude: Double): Boolean = withContext(Dispatchers.IO) {
+        if (!isEnabled()) return@withContext false
+
+        val token = getBotToken()
+        val chatId = getChatId()
+        if (token.isBlank() || chatId.isBlank()) return@withContext false
+
+        val timeStr = SimpleDateFormat("HH:mm:ss - dd MMM yyyy", Locale.getDefault()).format(Date())
+        val mapsUrl = "https://maps.google.com/?q=$latitude,$longitude"
+
+        val textMsg = StringBuilder().apply {
+            append("📍 <b>[Famly] Lokasi Terkini Anak</b>\n\n")
+            append("🌐 <b>Koordinat GPS:</b> <code>$latitude, $longitude</code>\n")
+            append("🗺️ <b>Peta Google Maps:</b> <a href=\"$mapsUrl\">Buka di Maps</a>\n\n")
+            append("🕒 <i>$timeStr</i>")
+        }.toString()
+
+        // First send location pin
+        executeSendLocationPin(token, chatId, latitude, longitude)
+        // Second send text with link
+        return@withContext executeSendMessage(token, chatId, textMsg)
+    }
+
     suspend fun testConnection(token: String, chatId: String): String = withContext(Dispatchers.IO) {
         val cleanToken = token.trim()
         val cleanChatId = chatId.trim()
@@ -102,13 +125,43 @@ class TelegramBotManager(context: Context) {
         if (cleanToken.isBlank()) return@withContext "Bot Token tidak boleh kosong."
         if (cleanChatId.isBlank()) return@withContext "Chat ID tidak boleh kosong."
 
-        val testMsg = "🎉 <b>[NotifVault] Uji Coba Bot Telegram Success!</b>\n\nBot Telegram Anda telah terhubung dan siap meneruskan notifikasi dari NotifVault."
+        val testMsg = "🎉 <b>[Famly] Uji Coba Bot Telegram Sukses!</b>\n\nBot Telegram Famly telah terhubung dan siap meneruskan notifikasi & koordinat lokasi anak."
 
         val success = executeSendMessage(cleanToken, cleanChatId, testMsg)
         if (success) {
             "SUCCESS: Pesan tes berhasil dikirim ke Telegram!"
         } else {
             "ERROR: Gagal mengirim pesan. Pastikan Token dan Chat ID benar, serta sudah menekan /start pada bot."
+        }
+    }
+
+    private fun executeSendLocationPin(token: String, chatId: String, latitude: Double, longitude: Double): Boolean {
+        return try {
+            val urlString = "https://api.telegram.org/bot$token/sendLocation"
+            val url = URL(urlString)
+            val conn = url.openConnection() as HttpURLConnection
+            conn.requestMethod = "POST"
+            conn.connectTimeout = 8000
+            conn.readTimeout = 8000
+            conn.doOutput = true
+            conn.setRequestProperty("Content-Type", "application/json; charset=utf-8")
+
+            val jsonBody = JSONObject().apply {
+                put("chat_id", chatId)
+                put("latitude", latitude)
+                put("longitude", longitude)
+            }
+
+            conn.outputStream.use { os ->
+                val input = jsonBody.toString().toByteArray(Charsets.UTF_8)
+                os.write(input, 0, input.size)
+            }
+
+            val responseCode = conn.responseCode
+            responseCode == HttpURLConnection.HTTP_OK
+        } catch (e: Exception) {
+            Log.e("TelegramBotManager", "Gagal mengirim location pin Telegram: ${e.message}", e)
+            false
         }
     }
 

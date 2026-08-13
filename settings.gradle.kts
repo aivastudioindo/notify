@@ -22,6 +22,6 @@ dependencyResolutionManagement {
   }
 }
 
-rootProject.name = "NotifVault"
+rootProject.name = "Famly"
 
 include(":app")

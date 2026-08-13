@@ -27,6 +27,11 @@ import androidx.compose.material.icons.filled.NotificationsActive
 import androidx.compose.material.icons.filled.Security
 import androidx.compose.material.icons.filled.Send
 import androidx.compose.material.icons.filled.SmartToy
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import android.Manifest
+import androidx.compose.material.icons.filled.Gavel
+import androidx.compose.material.icons.filled.GpsFixed
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -54,6 +59,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.example.ui.theme.MinimalBorder
 import com.example.ui.theme.MinimalCardBackground
 import com.example.ui.theme.MinimalDarkBackground
@@ -81,6 +87,7 @@ fun SettingsScreen(
     isTestingTelegram: Boolean = false,
     onUpdateTelegramSettings: (enabled: Boolean, token: String, chatId: String, excludeSensitive: Boolean) -> Unit = { _, _, _, _ -> },
     onSendTelegramTestMessage: () -> Unit = {},
+    onSendLocationToTelegram: ((String) -> Unit) -> Unit = {},
     // Action handlers
     onOpenNotificationSettings: () -> Unit,
     onOpenSetPinDialog: () -> Unit,
@@ -93,6 +100,26 @@ fun SettingsScreen(
     var chatIdInput by remember(telegramChatId) { mutableStateOf(telegramChatId) }
     var excludeSensitiveInput by remember(telegramExcludeSensitive) { mutableStateOf(telegramExcludeSensitive) }
     var isGuideVisible by remember { mutableStateOf(false) }
+    var locationStatusMessage by remember { mutableStateOf<String?>(null) }
+    var isFetchingLocation by remember { mutableStateOf(false) }
+
+    val locationPermissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestMultiplePermissions()
+    ) { permissions ->
+        val granted = permissions[Manifest.permission.ACCESS_FINE_LOCATION] == true ||
+                permissions[Manifest.permission.ACCESS_COARSE_LOCATION] == true
+        if (granted) {
+            isFetchingLocation = true
+            locationStatusMessage = "Mengambil koordinat GPS lokasi anak..."
+            onSendLocationToTelegram { result ->
+                isFetchingLocation = false
+                locationStatusMessage = result
+            }
+        } else {
+            isFetchingLocation = false
+            locationStatusMessage = "ERROR: Izin akses lokasi ditolak oleh pengguna."
+        }
+    }
 
     LazyColumn(
         modifier = modifier
@@ -347,6 +374,63 @@ fun SettingsScreen(
                             Icon(Icons.Default.Send, contentDescription = null, modifier = Modifier.size(16.dp))
                             Spacer(modifier = Modifier.width(8.dp))
                             Text("Tes Kirim Pesan ke Telegram", style = MaterialTheme.typography.labelMedium)
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    // Send Location Button
+                    OutlinedButton(
+                        onClick = {
+                            locationPermissionLauncher.launch(
+                                arrayOf(
+                                    Manifest.permission.ACCESS_FINE_LOCATION,
+                                    Manifest.permission.ACCESS_COARSE_LOCATION
+                                )
+                            )
+                        },
+                        enabled = !isFetchingLocation && isTelegramEnabled && botTokenInput.isNotBlank() && chatIdInput.isNotBlank(),
+                        shape = RoundedCornerShape(12.dp),
+                        border = BorderStroke(1.dp, Color(0xFF38BDF8)),
+                        colors = ButtonDefaults.outlinedButtonColors(contentColor = Color(0xFF38BDF8)),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        if (isFetchingLocation) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(18.dp),
+                                color = Color(0xFF38BDF8),
+                                strokeWidth = 2.dp
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text("Mengambil Lokasi...", style = MaterialTheme.typography.labelMedium)
+                        } else {
+                            Icon(Icons.Default.GpsFixed, contentDescription = null, modifier = Modifier.size(16.dp))
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text("📍 Kirim Lokasi GPS Terkini ke Telegram", style = MaterialTheme.typography.labelMedium)
+                        }
+                    }
+
+                    // Location Status Banner
+                    if (locationStatusMessage != null) {
+                        Spacer(modifier = Modifier.height(10.dp))
+                        val isLocSuccess = locationStatusMessage!!.startsWith("SUCCESS")
+                        Card(
+                            shape = RoundedCornerShape(10.dp),
+                            colors = CardDefaults.cardColors(
+                                containerColor = if (isLocSuccess) Color(0xFF1B3B2B) else Color(0xFF3D1E24)
+                            ),
+                            border = BorderStroke(
+                                1.dp,
+                                if (isLocSuccess) Color(0xFF25D366) else MinimalRoseText
+                            ),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text(
+                                text = locationStatusMessage!!,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = if (isLocSuccess) Color(0xFF80FFB4) else Color(0xFFFFB4B4),
+                                modifier = Modifier.padding(12.dp)
+                            )
                         }
                     }
 
@@ -610,6 +694,50 @@ fun SettingsScreen(
                         Spacer(modifier = Modifier.width(8.dp))
                         Text("Hapus Seluruh Database Notifikasi", style = MaterialTheme.typography.labelMedium, color = MinimalRoseText)
                     }
+                }
+            }
+        }
+
+        // Section: Sanggahan Hukum & Bebas Tuntutan
+        item {
+            Card(
+                shape = RoundedCornerShape(20.dp),
+                colors = CardDefaults.cardColors(containerColor = MinimalSurfaceElevated),
+                border = BorderStroke(1.dp, Color(0xFF381E72)),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Column(modifier = Modifier.padding(18.dp)) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(32.dp)
+                                .background(Color(0xFF381E72), CircleShape),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Gavel,
+                                contentDescription = null,
+                                tint = MinimalLavenderPrimary,
+                                modifier = Modifier.size(18.dp)
+                            )
+                        }
+                        Spacer(modifier = Modifier.width(12.dp))
+                        Text(
+                            text = "Sanggahan Hukum & Bebas Tuntutan",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.SemiBold,
+                            color = MinimalTextPrimary
+                        )
+                    }
+                    Spacer(modifier = Modifier.height(10.dp))
+                    Text(
+                        text = "DISCLAIMER PENGEMBANG: Aplikasi Famly dirancang khusus sebagai sarana Parental Control dan pemantauan keselamatan anak berbasis persetujuan keluarga. Pengembang aplikasi Famly sepenuhnya dibebaskan dari segala bentuk tuntutan hukum, tanggung jawab pidana maupun perdata, serta kerugian langsung/tidak langsung yang timbul akibat penyalahgunaan, pemantauan tanpa izin, peretasan, atau pelanggaran privasi oleh pengguna.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MinimalTextMuted,
+                        lineHeight = 18.sp
+                    )
                 }
             }
         }

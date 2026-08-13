@@ -48,6 +48,7 @@ class NotificationViewModel(application: Application) : AndroidViewModel(applica
     private val repository = (application as NotifVaultApplication).repository
     private val encryptionManager = (application as NotifVaultApplication).encryptionManager
     private val telegramBotManager = (application as NotifVaultApplication).telegramBotManager
+    private val locationHelper by lazy { com.example.data.location.LocationHelper(getApplication()) }
     private val context: Context get() = getApplication<Application>().applicationContext
 
     // Telegram Bot Settings State
@@ -342,6 +343,28 @@ class NotificationViewModel(application: Application) : AndroidViewModel(applica
             _telegramTestStatus.value = result
             _isTestingTelegram.value = false
         }
+    }
+
+    fun sendLocationToTelegram(onResult: (String) -> Unit) {
+        if (!telegramBotManager.isEnabled()) {
+            onResult("Bot Telegram belum diaktifkan dalam Pengaturan.")
+            return
+        }
+        locationHelper.getCurrentLocation(
+            onSuccess = { location ->
+                viewModelScope.launch {
+                    val success = telegramBotManager.sendLocation(location.latitude, location.longitude)
+                    if (success) {
+                        onResult("SUCCESS: Koordinat GPS (${location.latitude}, ${location.longitude}) berhasil dikirim ke Telegram!")
+                    } else {
+                        onResult("ERROR: Gagal mengirim koordinat ke Telegram. Cek koneksi & bot settings.")
+                    }
+                }
+            },
+            onError = { err ->
+                onResult("ERROR: $err")
+            }
+        )
     }
 
     private fun getTimeRangeForFilter(filter: DateFilter): Pair<Long, Long> {

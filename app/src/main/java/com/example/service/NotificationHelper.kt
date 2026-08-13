@@ -44,7 +44,7 @@ object NotificationHelper {
         context: Context,
         title: String,
         message: String,
-        subText: String = "Simulasi NotifVault"
+        subText: String = "Simulasi Famly"
     ) {
         val manager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
 
@@ -54,7 +54,7 @@ object NotificationHelper {
                 "Notifikasi Uji Coba",
                 NotificationManager.IMPORTANCE_DEFAULT
             ).apply {
-                description = "Saluran untuk pengujian NotifVault"
+                description = "Saluran untuk pengujian Famly"
             }
             manager.createNotificationChannel(channel)
         }

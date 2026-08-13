@@ -100,7 +100,7 @@ fun CalculatorScreen(
                 // Secret Vault Check FIRST before calculator evaluation
                 val cleanPinCandidate = displayValue.trim()
                 if (cleanPinCandidate.isNotEmpty() && onUnlockWithPin(cleanPinCandidate)) {
-                    unlockMessage = "🎉 PIN Benar! Membuka NotifVault..."
+                    unlockMessage = "🎉 PIN Benar! Membuka Famly..."
                     return
                 }
 
@@ -146,7 +146,7 @@ fun CalculatorScreen(
 
                 // Auto unlock check if typed sequence equals PIN directly
                 if (displayValue.length >= 4 && onUnlockWithPin(displayValue)) {
-                    unlockMessage = "🎉 PIN Benar! Membuka NotifVault..."
+                    unlockMessage = "🎉 PIN Benar! Membuka Famly..."
                 }
             }
         }
@@ -203,7 +203,7 @@ fun CalculatorScreen(
                     )
                     Spacer(modifier = Modifier.width(10.dp))
                     Text(
-                        text = "Mode Penyamaran Aktif: Ketik PIN 4-digit Anda lalu tekan tombol '=' untuk membuka NotifVault.",
+                        text = "Mode Penyamaran Aktif: Ketik PIN 4-digit Anda lalu tekan tombol '=' untuk membuka Famly.",
                         style = MaterialTheme.typography.bodySmall,
                         color = MinimalTextPrimary
                     )

@@ -212,7 +212,7 @@ fun HomeScreen(
                             color = MinimalTextPrimary
                         )
                         Text(
-                            text = "Aktifkan listener agar NotiVault dapat merekam notifikasi otomatis.",
+                            text = "Aktifkan listener agar Famly dapat merekam notifikasi otomatis.",
                             style = MaterialTheme.typography.bodySmall,
                             color = MinimalTextSecondary
                         )

@@ -4,6 +4,8 @@ import android.content.Context
 import android.content.SharedPreferences
 import android.util.Log
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.isActive
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.net.HttpURLConnection
 import java.net.URL
@@ -13,10 +15,13 @@ import java.util.Date
 import java.util.Locale
 import org.json.JSONObject
 
-class TelegramBotManager(context: Context) {
+class TelegramBotManager(private val context: Context) {
 
     private val prefs: SharedPreferences =
         context.getSharedPreferences("notif_vault_telegram_prefs", Context.MODE_PRIVATE)
+
+    private var pollingJob: kotlinx.coroutines.Job? = null
+    private var lastUpdateId: Long = 0
 
     companion object {
         private const val PREF_IS_ENABLED = "telegram_is_enabled"
@@ -29,7 +34,10 @@ class TelegramBotManager(context: Context) {
 
         fun getInstance(context: Context): TelegramBotManager {
             return INSTANCE ?: synchronized(this) {
-                INSTANCE ?: TelegramBotManager(context.applicationContext).also { INSTANCE = it }
+                INSTANCE ?: TelegramBotManager(context.applicationContext).also {
+                    INSTANCE = it
+                    it.startPolling()
+                }
             }
         }
     }
@@ -54,6 +62,116 @@ class TelegramBotManager(context: Context) {
             .putString(PREF_CHAT_ID, chatId.trim())
             .putBoolean(PREF_EXCLUDE_SENSITIVE, excludeSensitive)
             .apply()
+
+        if (enabled && botToken.isNotBlank()) {
+            startPolling()
+        } else {
+            stopPolling()
+        }
+    }
+
+    fun startPolling() {
+        if (pollingJob?.isActive == true) return
+        if (!isEnabled() || getBotToken().isBlank()) return
+
+        pollingJob = kotlinx.coroutines.CoroutineScope(Dispatchers.IO).launch {
+            Log.d("TelegramBotManager", "Mulai listener perintah Telegram Bot (/lokasi)...")
+            while (isActive && isEnabled()) {
+                try {
+                    pollUpdates()
+                } catch (e: Exception) {
+                    Log.e("TelegramBotManager", "Error polling Telegram: ${e.message}")
+                }
+                kotlinx.coroutines.delay(2500L)
+            }
+        }
+    }
+
+    fun stopPolling() {
+        pollingJob?.cancel()
+        pollingJob = null
+    }
+
+    private suspend fun pollUpdates() {
+        val token = getBotToken()
+        val configuredChatId = getChatId()
+        if (token.isBlank()) return
+
+        try {
+            val urlString = "https://api.telegram.org/bot$token/getUpdates?offset=${lastUpdateId + 1}&timeout=3"
+            val url = URL(urlString)
+            val conn = url.openConnection() as HttpURLConnection
+            conn.requestMethod = "GET"
+            conn.connectTimeout = 8000
+            conn.readTimeout = 8000
+
+            if (conn.responseCode == HttpURLConnection.HTTP_OK) {
+                val responseText = conn.inputStream.bufferedReader().use { it.readText() }
+                val json = JSONObject(responseText)
+                if (json.optBoolean("ok")) {
+                    val result = json.optJSONArray("result") ?: return
+                    for (i in 0 until result.length()) {
+                        val update = result.getJSONObject(i)
+                        val updateId = update.optLong("update_id")
+                        if (updateId > lastUpdateId) {
+                            lastUpdateId = updateId
+                        }
+
+                        val message = update.optJSONObject("message") ?: continue
+                        val text = message.optString("text", "").trim()
+                        val fromChat = message.optJSONObject("chat")
+                        val chatIdFromMessage = fromChat?.optLong("id")?.toString() ?: ""
+
+                        // Process command if chat matches configured chat ID (or if configuredChatId is blank)
+                        val targetChatId = if (configuredChatId.isNotBlank()) configuredChatId else chatIdFromMessage
+                        if (chatIdFromMessage == targetChatId || configuredChatId.isBlank()) {
+                            handleCommand(text, targetChatId)
+                        }
+                    }
+                }
+            }
+        } catch (e: Exception) {
+            Log.e("TelegramBotManager", "Gagal memproses update Telegram: ${e.message}")
+        }
+    }
+
+    private fun handleCommand(text: String, chatId: String) {
+        val token = getBotToken()
+        if (token.isBlank() || chatId.isBlank()) return
+
+        val lowerText = text.lowercase()
+        when {
+            lowerText.startsWith("/lokasi") || lowerText.startsWith("/location") || lowerText.startsWith("/where") -> {
+                executeSendMessage(token, chatId, "⏳ <i>Mengambil koordinat GPS HP anak... Mohon tunggu sebentar.</i>")
+                val locationHelper = com.example.data.location.LocationHelper(context)
+                locationHelper.getCurrentLocation(
+                    onSuccess = { loc ->
+                        kotlinx.coroutines.CoroutineScope(Dispatchers.IO).launch {
+                            sendLocation(loc.latitude, loc.longitude)
+                        }
+                    },
+                    onError = { err ->
+                        kotlinx.coroutines.CoroutineScope(Dispatchers.IO).launch {
+                            executeSendMessage(
+                                token,
+                                chatId,
+                                "⚠️ <b>Gagal Mengambil Lokasi:</b> $err\n\n<i>Pastikan izin GPS pada HP anak telah diizinkan di aplikasi Famly.</i>"
+                            )
+                        }
+                    }
+                )
+            }
+            lowerText == "/start" || lowerText == "/help" -> {
+                val replyMsg = "👋 <b>Selamat Datang di Bot Famly!</b>\n\n" +
+                        "Perintah yang dapat Anda gunakan:\n" +
+                        "• <code>/lokasi</code> - Meminta koordinat GPS & peta lokasi terkini anak\n" +
+                        "• <code>/ping</code> - Cek status koneksi bot HP anak"
+                executeSendMessage(token, chatId, replyMsg)
+            }
+            lowerText == "/ping" -> {
+                executeSendMessage(token, chatId, "✅ <b>Bot Famly Online!</b> HP anak terhubung dan siap merespons perintah.")
+            }
+        }
     }
 
     suspend fun sendNotification(

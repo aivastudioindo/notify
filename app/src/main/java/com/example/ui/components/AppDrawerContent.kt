@@ -99,13 +99,13 @@ fun AppDrawerContent(
 
                     Column {
                         Text(
-                            text = "NotiVault",
+                            text = "Famly",
                             style = MaterialTheme.typography.titleLarge,
                             fontWeight = FontWeight.Medium,
                             color = MinimalTextPrimary
                         )
                         Text(
-                            text = "Clean Minimal Notification Logger",
+                            text = "Parental Control & Activity Monitor",
                             style = MaterialTheme.typography.labelSmall,
                             color = MinimalTextMuted
                         )
@@ -295,14 +295,14 @@ fun AppDrawerContent(
                 Spacer(modifier = Modifier.width(10.dp))
                 Column {
                     Text(
-                        text = "NOTIVAULT LITE",
+                        text = "FAMLY PARENTAL CONTROL",
                         style = MaterialTheme.typography.labelSmall,
                         fontWeight = FontWeight.Bold,
                         letterSpacing = 0.5.sp,
                         color = MinimalLavenderPrimary
                     )
                     Text(
-                        text = "Aplikasi cepat & responsif",
+                        text = "Proteksi & Pemantauan Keluarga",
                         style = MaterialTheme.typography.labelSmall,
                         fontSize = 10.sp,
                         color = MinimalTextSecondary

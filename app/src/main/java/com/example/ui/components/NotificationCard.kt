@@ -275,7 +275,7 @@ fun NotificationCard(
                         IconButton(
                             onClick = {
                                 val cm = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-                                val clip = ClipData.newPlainText("NotiVault", "${item.title}\n${item.text}")
+                                val clip = ClipData.newPlainText("Famly", "${item.title}\n${item.text}")
                                 cm.setPrimaryClip(clip)
                                 Toast.makeText(context, "Pesan disalin", Toast.LENGTH_SHORT).show()
                             },

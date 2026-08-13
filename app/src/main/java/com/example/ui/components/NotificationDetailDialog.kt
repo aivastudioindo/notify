@@ -274,7 +274,7 @@ fun NotificationDetailDialog(
                     OutlinedButton(
                         onClick = {
                             val cm = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-                            val clip = ClipData.newPlainText("NotiVault", "${item.appName}\n${item.title}\n${item.text}")
+                            val clip = ClipData.newPlainText("Famly", "${item.appName}\n${item.title}\n${item.text}")
                             cm.setPrimaryClip(clip)
                             Toast.makeText(context, "Pesan disalin", Toast.LENGTH_SHORT).show()
                         },

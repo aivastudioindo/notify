@@ -24,6 +24,7 @@ class EncryptionManager(context: Context) {
         private const val PREF_PIN_HASH = "vault_pin_hash"
         private const val PREF_IS_PIN_ENABLED = "vault_is_pin_enabled"
         private const val PREF_ENCRYPTION_ENABLED = "vault_encryption_enabled"
+        private const val PREF_CALCULATOR_DISGUISE_ENABLED = "vault_calculator_disguise_enabled"
 
         @Volatile
         private var INSTANCE: EncryptionManager? = null
@@ -129,5 +130,13 @@ class EncryptionManager(context: Context) {
 
     fun setEncryptionActive(active: Boolean) {
         prefs.edit().putBoolean(PREF_ENCRYPTION_ENABLED, active).apply()
+    }
+
+    fun isCalculatorDisguiseEnabled(): Boolean {
+        return prefs.getBoolean(PREF_CALCULATOR_DISGUISE_ENABLED, false) && isPinProtectionEnabled()
+    }
+
+    fun setCalculatorDisguiseEnabled(enabled: Boolean) {
+        prefs.edit().putBoolean(PREF_CALCULATOR_DISGUISE_ENABLED, enabled).apply()
     }
 }

@@ -50,6 +50,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.ui.CategoriesScreen
+import com.example.ui.CalculatorScreen
 import com.example.ui.HomeScreen
 import com.example.ui.NavDestination
 import com.example.ui.NotificationViewModel
@@ -95,8 +96,18 @@ fun NotifVaultApp(viewModel: NotificationViewModel) {
     val selectedNotification by viewModel.selectedNotification.collectAsState()
     val isVaultUnlocked by viewModel.isVaultUnlocked.collectAsState()
     val isPinProtectionEnabled by viewModel.isPinProtectionEnabled.collectAsState()
+    val isCalculatorDisguiseEnabled by viewModel.isCalculatorDisguiseEnabled.collectAsState()
     val showPinDialog by viewModel.showPinDialog.collectAsState()
     val pinDialogMode by viewModel.pinDialogMode.collectAsState()
+
+    if (isCalculatorDisguiseEnabled && !isVaultUnlocked) {
+        CalculatorScreen(
+            onUnlockWithPin = { pin ->
+                viewModel.unlockVault(pin)
+            }
+        )
+        return
+    }
 
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
     val coroutineScope = rememberCoroutineScope()
@@ -351,6 +362,7 @@ private fun AppMainScaffold(
 
                 NavDestination.SETTINGS -> {
                     val hasNotificationAccess by viewModel.hasNotificationAccess.collectAsState()
+                    val isCalculatorDisguiseEnabled by viewModel.isCalculatorDisguiseEnabled.collectAsState()
                     val isTelegramEnabled by viewModel.isTelegramEnabled.collectAsState()
                     val telegramBotToken by viewModel.telegramBotToken.collectAsState()
                     val telegramChatId by viewModel.telegramChatId.collectAsState()
@@ -362,6 +374,10 @@ private fun AppMainScaffold(
                         hasNotificationAccess = hasNotificationAccess,
                         isPinProtectionEnabled = isPinProtectionEnabled,
                         isVaultUnlocked = isVaultUnlocked,
+                        isCalculatorDisguiseEnabled = isCalculatorDisguiseEnabled,
+                        onToggleCalculatorDisguise = { enabled ->
+                            viewModel.setCalculatorDisguise(enabled)
+                        },
                         isTelegramEnabled = isTelegramEnabled,
                         telegramBotToken = telegramBotToken,
                         telegramChatId = telegramChatId,

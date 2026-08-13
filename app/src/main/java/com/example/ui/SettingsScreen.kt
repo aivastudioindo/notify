@@ -69,6 +69,9 @@ fun SettingsScreen(
     hasNotificationAccess: Boolean,
     isPinProtectionEnabled: Boolean,
     isVaultUnlocked: Boolean,
+    // Calculator Disguise
+    isCalculatorDisguiseEnabled: Boolean = false,
+    onToggleCalculatorDisguise: (Boolean) -> Unit = {},
     // Telegram Bot parameters
     isTelegramEnabled: Boolean = false,
     telegramBotToken: String = "",
@@ -502,6 +505,43 @@ fun SettingsScreen(
                     }
 
                     if (isPinProtectionEnabled) {
+                        Spacer(modifier = Modifier.height(14.dp))
+
+                        // Calculator Disguise Switch
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    text = "Penyamaran Ikon Kalkulator",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = MinimalTextPrimary
+                                )
+                                Text(
+                                    text = if (isCalculatorDisguiseEnabled)
+                                        "Aktif - Aplikasi menyamar sebagai Kalkulator"
+                                    else
+                                        "Ubah ikon & layar pembuka menjadi Kalkulator rahasia",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MinimalTextMuted
+                                )
+                            }
+
+                            Switch(
+                                checked = isCalculatorDisguiseEnabled,
+                                onCheckedChange = { onToggleCalculatorDisguise(it) },
+                                colors = SwitchDefaults.colors(
+                                    checkedThumbColor = MinimalDarkBackground,
+                                    checkedTrackColor = MinimalLavenderPrimary,
+                                    uncheckedThumbColor = MinimalTextMuted,
+                                    uncheckedTrackColor = MinimalCardBackground
+                                )
+                            )
+                        }
+
                         Spacer(modifier = Modifier.height(14.dp))
 
                         Row(

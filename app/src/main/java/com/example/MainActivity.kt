@@ -7,14 +7,12 @@ import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Category
@@ -47,6 +45,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -93,143 +92,119 @@ class MainActivity : ComponentActivity() {
 @Composable
 fun NotifVaultApp(viewModel: NotificationViewModel) {
     val currentDest by viewModel.currentDestination.collectAsState()
-    val filterState by viewModel.filterState.collectAsState()
-    val notifications by viewModel.notifications.collectAsState()
     val selectedNotification by viewModel.selectedNotification.collectAsState()
-    val selectedIds by viewModel.selectedIds.collectAsState()
-    val isSelectionMode by viewModel.isSelectionMode.collectAsState()
     val isVaultUnlocked by viewModel.isVaultUnlocked.collectAsState()
     val isPinProtectionEnabled by viewModel.isPinProtectionEnabled.collectAsState()
     val showPinDialog by viewModel.showPinDialog.collectAsState()
     val pinDialogMode by viewModel.pinDialogMode.collectAsState()
-    val hasNotificationAccess by viewModel.hasNotificationAccess.collectAsState()
-    val categoryCounts by viewModel.categoryCounts.collectAsState()
-    val distinctApps by viewModel.distinctApps.collectAsState()
 
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
     val coroutineScope = rememberCoroutineScope()
+    val isTablet = LocalConfiguration.current.screenWidthDp >= 720
 
-    BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
-        val isTablet = maxWidth >= 720.dp
-
-        if (isTablet) {
-            // Tablet / Wide-screen layout with side NavigationRail
-            Row(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(MinimalDarkBackground)
-            ) {
-                NavigationRail(
-                    containerColor = MinimalSurfaceElevated,
-                    contentColor = MinimalTextPrimary,
-                    header = {
-                        Surface(
-                            color = MinimalLavenderPrimary,
-                            shape = CircleShape,
-                            modifier = Modifier
-                                .size(44.dp)
-                                .padding(4.dp)
-                        ) {
-                            Box(contentAlignment = Alignment.Center) {
-                                Icon(
-                                    imageVector = Icons.Default.Shield,
-                                    contentDescription = null,
-                                    tint = Color(0xFF381E72),
-                                    modifier = Modifier.size(20.dp)
-                                )
-                            }
-                        }
-                    },
-                    modifier = Modifier.fillMaxHeight()
-                ) {
-                    Spacer(modifier = Modifier.weight(1f))
-
-                    NavDestination.entries.forEach { dest ->
-                        NavigationRailItem(
-                            selected = currentDest == dest,
-                            onClick = { viewModel.setDestination(dest) },
-                            icon = {
-                                Icon(
-                                    imageVector = when (dest) {
-                                        NavDestination.ALL_NOTIFICATIONS -> Icons.Default.Notifications
-                                        NavDestination.CATEGORIES -> Icons.Default.Category
-                                        NavDestination.SETTINGS -> Icons.Default.Settings
-                                    },
-                                    contentDescription = dest.title
-                                )
-                            },
-                            label = { Text(dest.title.take(8), fontSize = 10.sp) },
-                            colors = NavigationRailItemDefaults.colors(
-                                selectedIconColor = MinimalLavenderPrimary,
-                                selectedTextColor = MinimalLavenderPrimary,
-                                unselectedIconColor = MinimalTextMuted,
-                                unselectedTextColor = MinimalTextMuted,
-                                indicatorColor = MinimalCardBackground
+    if (isTablet) {
+        Row(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(MinimalDarkBackground)
+        ) {
+            NavigationRail(
+                containerColor = MinimalSurfaceElevated,
+                contentColor = MinimalTextPrimary,
+                header = {
+                    Surface(
+                        color = MinimalLavenderPrimary,
+                        shape = CircleShape,
+                        modifier = Modifier
+                            .size(44.dp)
+                            .padding(4.dp)
+                    ) {
+                        Box(contentAlignment = Alignment.Center) {
+                            Icon(
+                                imageVector = Icons.Default.Shield,
+                                contentDescription = null,
+                                tint = Color(0xFF381E72),
+                                modifier = Modifier.size(20.dp)
                             )
-                        )
+                        }
                     }
+                },
+                modifier = Modifier.fillMaxHeight()
+            ) {
+                Spacer(modifier = Modifier.weight(1f))
 
-                    Spacer(modifier = Modifier.weight(1f))
-                }
-
-                Box(
-                    modifier = Modifier
-                        .weight(1f)
-                        .fillMaxHeight()
-                ) {
-                    AppMainScaffold(
-                        currentDest = currentDest,
-                        filterState = filterState,
-                        notifications = notifications,
-                        selectedIds = selectedIds,
-                        isSelectionMode = isSelectionMode,
-                        isVaultUnlocked = isVaultUnlocked,
-                        isPinProtectionEnabled = isPinProtectionEnabled,
-                        hasNotificationAccess = hasNotificationAccess,
-                        categoryCounts = categoryCounts,
-                        distinctApps = distinctApps,
-                        onOpenDrawer = { /* Tablet uses rail */ },
-                        showHamburger = false,
-                        viewModel = viewModel
+                NavDestination.entries.forEach { dest ->
+                    NavigationRailItem(
+                        selected = currentDest == dest,
+                        onClick = { viewModel.setDestination(dest) },
+                        icon = {
+                            Icon(
+                                imageVector = when (dest) {
+                                    NavDestination.ALL_NOTIFICATIONS -> Icons.Default.Notifications
+                                    NavDestination.CATEGORIES -> Icons.Default.Category
+                                    NavDestination.SETTINGS -> Icons.Default.Settings
+                                },
+                                contentDescription = dest.title
+                            )
+                        },
+                        label = { Text(dest.title.take(8), fontSize = 10.sp) },
+                        colors = NavigationRailItemDefaults.colors(
+                            selectedIconColor = MinimalLavenderPrimary,
+                            selectedTextColor = MinimalLavenderPrimary,
+                            unselectedIconColor = MinimalTextMuted,
+                            unselectedTextColor = MinimalTextMuted,
+                            indicatorColor = MinimalCardBackground
+                        )
                     )
                 }
+
+                Spacer(modifier = Modifier.weight(1f))
             }
-        } else {
-            // Smartphone layout with modern Hamburger Drawer
-            ModalNavigationDrawer(
-                drawerState = drawerState,
-                drawerContent = {
-                    ModalDrawerSheet(
-                        drawerContainerColor = MinimalDarkBackground,
-                        drawerContentColor = MinimalTextPrimary
-                    ) {
-                        AppDrawerContent(
-                            currentDestination = currentDest,
-                            hasNotificationAccess = hasNotificationAccess,
-                            totalRecorded = notifications.size,
-                            onSelectDestination = { dest -> viewModel.setDestination(dest) },
-                            onSelectCategoryFilter = { cat -> viewModel.selectCategoryFilter(cat) },
-                            onCloseDrawer = { coroutineScope.launch { drawerState.close() } }
-                        )
-                    }
-                }
+
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxHeight()
             ) {
                 AppMainScaffold(
                     currentDest = currentDest,
-                    filterState = filterState,
-                    notifications = notifications,
-                    selectedIds = selectedIds,
-                    isSelectionMode = isSelectionMode,
                     isVaultUnlocked = isVaultUnlocked,
                     isPinProtectionEnabled = isPinProtectionEnabled,
-                    hasNotificationAccess = hasNotificationAccess,
-                    categoryCounts = categoryCounts,
-                    distinctApps = distinctApps,
-                    onOpenDrawer = { coroutineScope.launch { drawerState.open() } },
-                    showHamburger = true,
+                    onOpenDrawer = { /* Tablet uses rail */ },
+                    showHamburger = false,
                     viewModel = viewModel
                 )
             }
+        }
+    } else {
+        ModalNavigationDrawer(
+            drawerState = drawerState,
+            drawerContent = {
+                ModalDrawerSheet(
+                    drawerContainerColor = MinimalDarkBackground,
+                    drawerContentColor = MinimalTextPrimary
+                ) {
+                    val hasAccess by viewModel.hasNotificationAccess.collectAsState()
+                    val notifications by viewModel.notifications.collectAsState()
+                    AppDrawerContent(
+                        currentDestination = currentDest,
+                        hasNotificationAccess = hasAccess,
+                        totalRecorded = notifications.size,
+                        onSelectDestination = { dest -> viewModel.setDestination(dest) },
+                        onSelectCategoryFilter = { cat -> viewModel.selectCategoryFilter(cat) },
+                        onCloseDrawer = { coroutineScope.launch { drawerState.close() } }
+                    )
+                }
+            }
+        ) {
+            AppMainScaffold(
+                currentDest = currentDest,
+                isVaultUnlocked = isVaultUnlocked,
+                isPinProtectionEnabled = isPinProtectionEnabled,
+                onOpenDrawer = { coroutineScope.launch { drawerState.open() } },
+                showHamburger = true,
+                viewModel = viewModel
+            )
         }
     }
 
@@ -248,7 +223,6 @@ fun NotifVaultApp(viewModel: NotificationViewModel) {
         PinAuthDialog(
             mode = pinDialogMode,
             onDismiss = {
-                // If vault is unlocked or mode is set new, allow dismiss; if locked, require pin
                 if (isVaultUnlocked || pinDialogMode == PinDialogMode.SET_NEW) {
                     viewModel.dismissPinDialog()
                 }
@@ -263,15 +237,8 @@ fun NotifVaultApp(viewModel: NotificationViewModel) {
 @Composable
 private fun AppMainScaffold(
     currentDest: NavDestination,
-    filterState: com.example.ui.FilterState,
-    notifications: List<com.example.data.model.NotificationItem>,
-    selectedIds: Set<Long>,
-    isSelectionMode: Boolean,
     isVaultUnlocked: Boolean,
     isPinProtectionEnabled: Boolean,
-    hasNotificationAccess: Boolean,
-    categoryCounts: List<com.example.data.local.CategoryCountResult>,
-    distinctApps: List<com.example.data.local.AppCountResult>,
     onOpenDrawer: () -> Unit,
     showHamburger: Boolean,
     viewModel: NotificationViewModel
@@ -333,6 +300,12 @@ private fun AppMainScaffold(
         ) {
             when (currentDest) {
                 NavDestination.ALL_NOTIFICATIONS -> {
+                    val notifications by viewModel.notifications.collectAsState()
+                    val filterState by viewModel.filterState.collectAsState()
+                    val selectedIds by viewModel.selectedIds.collectAsState()
+                    val isSelectionMode by viewModel.isSelectionMode.collectAsState()
+                    val hasNotificationAccess by viewModel.hasNotificationAccess.collectAsState()
+
                     HomeScreen(
                         notifications = notifications,
                         filterState = filterState,
@@ -357,6 +330,9 @@ private fun AppMainScaffold(
                 }
 
                 NavDestination.CATEGORIES -> {
+                    val categoryCounts by viewModel.categoryCounts.collectAsState()
+                    val distinctApps by viewModel.distinctApps.collectAsState()
+
                     CategoriesScreen(
                         categoryCounts = categoryCounts,
                         distinctApps = distinctApps,
@@ -374,6 +350,8 @@ private fun AppMainScaffold(
                 }
 
                 NavDestination.SETTINGS -> {
+                    val hasNotificationAccess by viewModel.hasNotificationAccess.collectAsState()
+
                     SettingsScreen(
                         hasNotificationAccess = hasNotificationAccess,
                         isPinProtectionEnabled = isPinProtectionEnabled,

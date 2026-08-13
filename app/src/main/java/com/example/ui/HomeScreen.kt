@@ -487,7 +487,8 @@ fun HomeScreen(
             ) {
                 items(
                     items = notifications,
-                    key = { it.id }
+                    key = { it.id },
+                    contentType = { "notification_card" }
                 ) { item ->
                     val isSelected = selectedIds.contains(item.id)
                     NotificationCard(

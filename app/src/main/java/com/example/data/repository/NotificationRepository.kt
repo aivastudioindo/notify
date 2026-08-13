@@ -150,26 +150,14 @@ class NotificationRepository(
         endTime: Long = Long.MAX_VALUE
     ): Flow<List<NotificationItem>> {
         return notificationDao.getFilteredNotifications(
+            searchQuery = searchQuery.trim(),
             category = category?.id,
             packageName = packageName,
             isFavorite = isFavorite,
             startTime = startTime,
             endTime = endTime
         ).map { entities ->
-            val items = entities.map { mapToItem(it) }
-            if (searchQuery.isBlank()) {
-                items
-            } else {
-                val query = searchQuery.trim().lowercase()
-                items.filter { item ->
-                    item.title.lowercase().contains(query) ||
-                            item.text.lowercase().contains(query) ||
-                            item.appName.lowercase().contains(query) ||
-                            item.subText.lowercase().contains(query) ||
-                            item.bigText.lowercase().contains(query) ||
-                            item.packageName.lowercase().contains(query)
-                }
-            }
+            entities.map { mapToItem(it) }
         }.flowOn(Dispatchers.Default)
     }
 

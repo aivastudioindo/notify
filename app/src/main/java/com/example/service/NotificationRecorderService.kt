@@ -11,9 +11,15 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
 
+import java.util.concurrent.ConcurrentHashMap
+
 class NotificationRecorderService : NotificationListenerService() {
 
     private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+
+    companion object {
+        private val appNameCache = ConcurrentHashMap<String, String>()
+    }
 
     override fun onListenerConnected() {
         super.onListenerConnected()
@@ -40,12 +46,14 @@ class NotificationRecorderService : NotificationListenerService() {
         // Ignore empty title and text notifications
         if (title.isBlank() && text.isBlank() && bigText.isBlank()) return
 
-        val appName = try {
-            val pm = applicationContext.packageManager
-            val appInfo = pm.getApplicationInfo(packageName, PackageManager.GET_META_DATA)
-            pm.getApplicationLabel(appInfo).toString()
-        } catch (e: Exception) {
-            packageName.substringAfterLast('.')
+        val appName = appNameCache.getOrPut(packageName) {
+            try {
+                val pm = applicationContext.packageManager
+                val appInfo = pm.getApplicationInfo(packageName, 0)
+                pm.getApplicationLabel(appInfo).toString()
+            } catch (e: Exception) {
+                packageName.substringAfterLast('.')
+            }
         }
 
         // Use the stable sbn.key provided by Android OS so updates to the same notification replace cleanly

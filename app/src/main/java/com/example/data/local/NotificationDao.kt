@@ -41,14 +41,25 @@ interface NotificationDao {
         AND (:packageName IS NULL OR packageName = :packageName)
         AND (:isFavorite IS NULL OR isFavorite = :isFavorite)
         AND (postTime >= :startTime AND postTime <= :endTime)
+        AND (
+            :searchQuery = '' OR 
+            encryptedTitle LIKE '%' || :searchQuery || '%' OR 
+            encryptedText LIKE '%' || :searchQuery || '%' OR 
+            appName LIKE '%' || :searchQuery || '%' OR 
+            encryptedSubText LIKE '%' || :searchQuery || '%' OR
+            packageName LIKE '%' || :searchQuery || '%'
+        )
         ORDER BY postTime DESC
+        LIMIT :limit
     """)
     fun getFilteredNotifications(
+        searchQuery: String = "",
         category: String? = null,
         packageName: String? = null,
         isFavorite: Boolean? = null,
         startTime: Long = 0L,
-        endTime: Long = Long.MAX_VALUE
+        endTime: Long = Long.MAX_VALUE,
+        limit: Int = 300
     ): Flow<List<NotificationEntity>>
 
     @Query("SELECT * FROM notifications WHERE id = :id LIMIT 1")

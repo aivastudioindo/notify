@@ -147,7 +147,7 @@ class TelegramBotManager(private val context: Context) {
                 locationHelper.getCurrentLocation(
                     onSuccess = { loc ->
                         kotlinx.coroutines.CoroutineScope(Dispatchers.IO).launch {
-                            sendLocation(loc.latitude, loc.longitude)
+                            sendLocation(loc.latitude, loc.longitude, chatId)
                         }
                     },
                     onError = { err ->
@@ -213,11 +213,11 @@ class TelegramBotManager(private val context: Context) {
         return@withContext executeSendMessage(token, chatId, message)
     }
 
-    suspend fun sendLocation(latitude: Double, longitude: Double): Boolean = withContext(Dispatchers.IO) {
+    suspend fun sendLocation(latitude: Double, longitude: Double, targetChatId: String? = null): Boolean = withContext(Dispatchers.IO) {
         if (!isEnabled()) return@withContext false
 
         val token = getBotToken()
-        val chatId = getChatId()
+        val chatId = if (!targetChatId.isNullOrBlank()) targetChatId else getChatId()
         if (token.isBlank() || chatId.isBlank()) return@withContext false
 
         val timeStr = SimpleDateFormat("HH:mm:ss - dd MMM yyyy", Locale.getDefault()).format(Date())

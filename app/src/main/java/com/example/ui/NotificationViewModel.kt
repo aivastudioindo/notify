@@ -105,6 +105,10 @@ class NotificationViewModel(application: Application) : AndroidViewModel(applica
     private val _hasNotificationAccess = MutableStateFlow(false)
     val hasNotificationAccess: StateFlow<Boolean> = _hasNotificationAccess.asStateFlow()
 
+    private val prefs by lazy { context.getSharedPreferences("famly_onboarding_prefs", Context.MODE_PRIVATE) }
+    private val _showOnboardingDialog = MutableStateFlow(false)
+    val showOnboardingDialog: StateFlow<Boolean> = _showOnboardingDialog.asStateFlow()
+
     // Notifications Flow derived from FilterState
     val notifications: StateFlow<List<NotificationItem>> = _filterState.flatMapLatest { filter ->
         val (startTime, endTime) = getTimeRangeForFilter(filter.dateFilter)
@@ -138,6 +142,7 @@ class NotificationViewModel(application: Application) : AndroidViewModel(applica
 
     init {
         checkPermission()
+        checkFirstLaunchOnboarding()
         if (encryptionManager.isPinProtectionEnabled()) {
             _isVaultUnlocked.value = false
             _showPinDialog.value = true
@@ -153,6 +158,22 @@ class NotificationViewModel(application: Application) : AndroidViewModel(applica
             _showPinDialog.value = true
             _pinDialogMode.value = PinDialogMode.UNLOCK
         }
+    }
+
+    private fun checkFirstLaunchOnboarding() {
+        val isFirstLaunch = prefs.getBoolean("is_first_launch_done", false)
+        if (!isFirstLaunch || !_hasNotificationAccess.value) {
+            _showOnboardingDialog.value = true
+        }
+    }
+
+    fun openOnboardingDialog() {
+        _showOnboardingDialog.value = true
+    }
+
+    fun dismissOnboardingDialog() {
+        prefs.edit().putBoolean("is_first_launch_done", true).apply()
+        _showOnboardingDialog.value = false
     }
 
     fun checkPermission() {

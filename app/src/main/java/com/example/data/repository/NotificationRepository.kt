@@ -45,25 +45,62 @@ class NotificationRepository(
         bigText: String = "",
         postTime: Long = System.currentTimeMillis()
     ): Long = withContext(Dispatchers.IO) {
-        val fullContent = "$title $text $subText $bigText"
-        val category = NotificationCategory.categorize(packageName, title, text)
-        val isSensitive = isSensitiveContent(fullContent)
+        val cleanTitle = title.trim()
+        val cleanText = text.trim()
+        val cleanSubText = subText.trim()
+        val cleanBigText = bigText.trim()
 
-        // Check if encryption is active
-        val (encTitle, iv) = encryptionManager.encrypt(title)
-        val (encText, _) = encryptionManager.encrypt(text)
-        val (encSubText, _) = encryptionManager.encrypt(subText)
-        val (encBigText, _) = encryptionManager.encrypt(bigText)
+        // 1. Check if entity with same notificationKey exists
+        val existingByKey = if (key.isNotBlank()) notificationDao.getByKey(key) else null
+        if (existingByKey != null) {
+            // Check if title, text, subText, bigText are identical
+            if (existingByKey.encryptedTitle == cleanTitle &&
+                existingByKey.encryptedText == cleanText &&
+                existingByKey.encryptedSubText == cleanSubText &&
+                existingByKey.encryptedBigText == cleanBigText
+            ) {
+                // Completely duplicate notification - ignore duplicate
+                return@withContext existingByKey.id
+            }
+            // Title or text updated (e.g. WhatsApp message thread updated) -> Update existing entity!
+            val updated = existingByKey.copy(
+                encryptedTitle = cleanTitle,
+                encryptedText = cleanText,
+                encryptedSubText = cleanSubText,
+                encryptedBigText = cleanBigText,
+                postTime = postTime,
+                isRead = false
+            )
+            notificationDao.updateNotification(updated)
+            return@withContext existingByKey.id
+        }
+
+        // 2. Fallback duplicate check: Same package, title, and text posted within the last 15 seconds
+        val recentCutoff = postTime - 15_000L
+        val duplicateRecent = notificationDao.findRecentDuplicate(
+            packageName = packageName,
+            title = cleanTitle,
+            text = cleanText,
+            minTime = recentCutoff
+        )
+        if (duplicateRecent != null) {
+            // Rapid duplicate notification - ignore
+            return@withContext duplicateRecent.id
+        }
+
+        val fullContent = "$cleanTitle $cleanText $cleanSubText $cleanBigText"
+        val category = NotificationCategory.categorize(packageName, cleanTitle, cleanText)
+        val isSensitive = isSensitiveContent(fullContent)
 
         val entity = NotificationEntity(
             notificationKey = key,
             packageName = packageName,
             appName = appName,
-            encryptedTitle = encTitle,
-            encryptedText = encText,
-            encryptedSubText = encSubText,
-            encryptedBigText = encBigText,
-            iv = iv,
+            encryptedTitle = cleanTitle,
+            encryptedText = cleanText,
+            encryptedSubText = cleanSubText,
+            encryptedBigText = cleanBigText,
+            iv = "",
             postTime = postTime,
             category = category.id,
             isSensitive = isSensitive,

@@ -48,7 +48,8 @@ class NotificationRecorderService : NotificationListenerService() {
             packageName.substringAfterLast('.')
         }
 
-        val key = "${sbn.key}_${sbn.postTime}"
+        // Use the stable sbn.key provided by Android OS so updates to the same notification replace cleanly
+        val key = sbn.key ?: "${packageName}_${sbn.id}"
         val postTime = if (sbn.postTime > 0) sbn.postTime else System.currentTimeMillis()
 
         serviceScope.launch {

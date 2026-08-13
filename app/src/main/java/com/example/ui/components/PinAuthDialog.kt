@@ -8,22 +8,20 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.systemBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Backspace
-import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Shield
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -42,12 +40,13 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import com.example.ui.PinDialogMode
 import com.example.ui.theme.MinimalBorder
 import com.example.ui.theme.MinimalCardBackground
+import com.example.ui.theme.MinimalDarkBackground
 import com.example.ui.theme.MinimalLavenderPrimary
 import com.example.ui.theme.MinimalRoseText
-import com.example.ui.theme.MinimalSurfaceElevated
 import com.example.ui.theme.MinimalTextMuted
 import com.example.ui.theme.MinimalTextPrimary
 import com.example.ui.theme.MinimalTextSecondary
@@ -64,106 +63,112 @@ fun PinAuthDialog(
     var isConfirmStep by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
 
-    Dialog(onDismissRequest = onDismiss) {
-        Card(
-            shape = RoundedCornerShape(28.dp),
-            colors = CardDefaults.cardColors(containerColor = MinimalSurfaceElevated),
-            border = BorderStroke(1.dp, MinimalBorder),
+    Dialog(
+        onDismissRequest = onDismiss,
+        properties = DialogProperties(
+            usePlatformDefaultWidth = false,
+            decorFitsSystemWindows = false
+        )
+    ) {
+        Surface(
             modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 8.dp)
+                .fillMaxSize()
+                .background(MinimalDarkBackground)
+                .systemBarsPadding(),
+            color = MinimalDarkBackground
         ) {
             Column(
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(24.dp),
-                horizontalAlignment = Alignment.CenterHorizontally
+                    .fillMaxSize()
+                    .padding(horizontal = 28.dp, vertical = 24.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center
             ) {
                 // Header Icon
                 Surface(
                     color = MinimalCardBackground,
                     shape = CircleShape,
                     border = BorderStroke(1.dp, MinimalBorder),
-                    modifier = Modifier.size(52.dp)
+                    modifier = Modifier.size(68.dp)
                 ) {
                     Box(contentAlignment = Alignment.Center) {
                         Icon(
                             imageVector = if (mode == PinDialogMode.UNLOCK) Icons.Default.Lock else Icons.Default.Shield,
                             contentDescription = null,
                             tint = MinimalLavenderPrimary,
-                            modifier = Modifier.size(24.dp)
+                            modifier = Modifier.size(32.dp)
                         )
                     }
                 }
 
-                Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(20.dp))
 
                 // Title & Subtitle
                 Text(
                     text = when {
-                        mode == PinDialogMode.UNLOCK -> "Buka Brankas Notifikasi"
+                        mode == PinDialogMode.UNLOCK -> "Kunci Aplikasi Active"
                         isConfirmStep -> "Konfirmasi PIN Baru"
-                        else -> "Buat PIN Brankas"
+                        else -> "Buat Kunci PIN Aplikasi"
                     },
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.SemiBold,
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold,
                     color = MinimalTextPrimary
                 )
 
-                Spacer(modifier = Modifier.height(6.dp))
+                Spacer(modifier = Modifier.height(8.dp))
 
                 Text(
                     text = when {
-                        mode == PinDialogMode.UNLOCK -> "Masukkan 4 digit PIN untuk melihat pesan terenkripsi"
-                        isConfirmStep -> "Ulangi 4 digit PIN yang sama"
-                        else -> "PIN ini digunakan untuk mengamankan data lokal Anda"
+                        mode == PinDialogMode.UNLOCK -> "Masukkan 4 digit PIN untuk membuka aplikasi"
+                        isConfirmStep -> "Ulangi 4 digit PIN yang sama untuk mengonfirmasi"
+                        else -> "PIN ini digunakan untuk mengamankan data dan notifikasi Anda"
                     },
-                    style = MaterialTheme.typography.bodySmall,
+                    style = MaterialTheme.typography.bodyMedium,
                     color = MinimalTextMuted,
                     textAlign = TextAlign.Center
                 )
 
-                Spacer(modifier = Modifier.height(24.dp))
+                Spacer(modifier = Modifier.height(32.dp))
 
                 // PIN Indicator Dots
                 val currentPinLength = if (isConfirmStep) confirmPin.length else enteredPin.length
                 Row(
-                    horizontalArrangement = Arrangement.spacedBy(16.dp),
+                    horizontalArrangement = Arrangement.spacedBy(20.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     repeat(4) { index ->
                         val isFilled = index < currentPinLength
                         Box(
                             modifier = Modifier
-                                .size(14.dp)
+                                .size(16.dp)
                                 .clip(CircleShape)
                                 .background(
                                     if (isFilled) MinimalLavenderPrimary else MinimalCardBackground
-                                )
-                                .then(
-                                    if (!isFilled) Modifier.background(Color.Transparent) else Modifier
                                 )
                         )
                     }
                 }
 
-                Spacer(modifier = Modifier.height(14.dp))
+                Spacer(modifier = Modifier.height(20.dp))
 
                 // Error Message if any
-                if (errorMessage != null) {
-                    Text(
-                        text = errorMessage ?: "",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MinimalRoseText,
-                        fontWeight = FontWeight.Medium
-                    )
-                } else {
-                    Spacer(modifier = Modifier.height(16.dp))
+                Box(
+                    modifier = Modifier.height(24.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    if (errorMessage != null) {
+                        Text(
+                            text = errorMessage ?: "",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MinimalRoseText,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                    }
                 }
 
-                Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(24.dp))
 
-                // Keypad 1-9, 0, Backspace
+                // Keypad 1-9, C, 0, DEL
                 val keys = listOf(
                     listOf("1", "2", "3"),
                     listOf("4", "5", "6"),
@@ -172,12 +177,12 @@ fun PinAuthDialog(
                 )
 
                 Column(
-                    verticalArrangement = Arrangement.spacedBy(10.dp),
+                    verticalArrangement = Arrangement.spacedBy(14.dp),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     for (row in keys) {
                         Row(
-                            horizontalArrangement = Arrangement.spacedBy(16.dp),
+                            horizontalArrangement = Arrangement.spacedBy(24.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             for (key in row) {
@@ -185,7 +190,7 @@ fun PinAuthDialog(
                                     "C" -> {
                                         Box(
                                             modifier = Modifier
-                                                .size(62.dp)
+                                                .size(72.dp)
                                                 .clip(CircleShape)
                                                 .clickable {
                                                     errorMessage = null
@@ -207,7 +212,7 @@ fun PinAuthDialog(
                                     "DEL" -> {
                                         Box(
                                             modifier = Modifier
-                                                .size(62.dp)
+                                                .size(72.dp)
                                                 .clip(CircleShape)
                                                 .clickable {
                                                     errorMessage = null
@@ -227,14 +232,14 @@ fun PinAuthDialog(
                                                 imageVector = Icons.Default.Backspace,
                                                 contentDescription = "Hapus",
                                                 tint = MinimalTextSecondary,
-                                                modifier = Modifier.size(20.dp)
+                                                modifier = Modifier.size(24.dp)
                                             )
                                         }
                                     }
                                     else -> {
                                         Box(
                                             modifier = Modifier
-                                                .size(62.dp)
+                                                .size(72.dp)
                                                 .clip(CircleShape)
                                                 .background(MinimalCardBackground)
                                                 .clickable {
@@ -284,7 +289,7 @@ fun PinAuthDialog(
                                             Text(
                                                 text = key,
                                                 style = MaterialTheme.typography.titleLarge,
-                                                fontWeight = FontWeight.Medium,
+                                                fontWeight = FontWeight.Bold,
                                                 color = MinimalTextPrimary
                                             )
                                         }
@@ -295,14 +300,16 @@ fun PinAuthDialog(
                     }
                 }
 
-                Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(24.dp))
 
-                TextButton(onClick = onDismiss) {
-                    Text(
-                        text = "Batal",
-                        style = MaterialTheme.typography.labelLarge,
-                        color = MinimalTextSecondary
-                    )
+                if (mode == PinDialogMode.SET_NEW) {
+                    TextButton(onClick = onDismiss) {
+                        Text(
+                            text = "Batal",
+                            style = MaterialTheme.typography.labelLarge,
+                            color = MinimalTextSecondary
+                        )
+                    }
                 }
             }
         }

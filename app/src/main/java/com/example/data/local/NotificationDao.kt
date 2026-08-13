@@ -57,6 +57,21 @@ interface NotificationDao {
     @Query("SELECT * FROM notifications WHERE notificationKey = :key LIMIT 1")
     suspend fun getByKey(key: String): NotificationEntity?
 
+    @Query("""
+        SELECT * FROM notifications 
+        WHERE packageName = :packageName 
+        AND encryptedTitle = :title 
+        AND encryptedText = :text 
+        AND postTime >= :minTime 
+        LIMIT 1
+    """)
+    suspend fun findRecentDuplicate(
+        packageName: String,
+        title: String,
+        text: String,
+        minTime: Long
+    ): NotificationEntity?
+
     @Query("SELECT DISTINCT packageName, appName, count(*) as count, category FROM notifications GROUP BY packageName ORDER BY count DESC")
     fun getDistinctAppsWithCount(): Flow<List<AppCountResult>>
 

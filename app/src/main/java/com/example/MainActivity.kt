@@ -1,7 +1,11 @@
 package com.example
 
+import android.Manifest
+import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
@@ -39,6 +43,7 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberCoroutineScope
@@ -58,6 +63,7 @@ import com.example.ui.PinDialogMode
 import com.example.ui.SettingsScreen
 import com.example.ui.components.AppDrawerContent
 import com.example.ui.components.NotificationDetailDialog
+import com.example.ui.components.OnboardingPermissionDialog
 import com.example.ui.components.PinAuthDialog
 import com.example.ui.theme.MinimalCardBackground
 import com.example.ui.theme.MinimalDarkBackground
@@ -99,6 +105,30 @@ fun NotifVaultApp(viewModel: NotificationViewModel) {
     val isCalculatorDisguiseEnabled by viewModel.isCalculatorDisguiseEnabled.collectAsState()
     val showPinDialog by viewModel.showPinDialog.collectAsState()
     val pinDialogMode by viewModel.pinDialogMode.collectAsState()
+    val showOnboardingDialog by viewModel.showOnboardingDialog.collectAsState()
+
+    // Activity Result Launcher for System Runtime Permissions (Location & Notifications)
+    val permissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestMultiplePermissions()
+    ) { permissions ->
+        viewModel.checkPermission()
+    }
+
+    fun requestAllSystemPermissions() {
+        val perms = mutableListOf(
+            Manifest.permission.ACCESS_FINE_LOCATION,
+            Manifest.permission.ACCESS_COARSE_LOCATION
+        )
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            perms.add(Manifest.permission.POST_NOTIFICATIONS)
+        }
+        permissionLauncher.launch(perms.toTypedArray())
+    }
+
+    // Auto-trigger runtime permissions request on first app launch
+    LaunchedEffect(Unit) {
+        requestAllSystemPermissions()
+    }
 
     if (isCalculatorDisguiseEnabled && !isVaultUnlocked) {
         CalculatorScreen(
@@ -219,6 +249,14 @@ fun NotifVaultApp(viewModel: NotificationViewModel) {
         }
     }
 
+    // Onboarding Permission Setup Dialog
+    if (showOnboardingDialog) {
+        OnboardingPermissionDialog(
+            onRequestSystemPermissions = { requestAllSystemPermissions() },
+            onDismiss = { viewModel.dismissOnboardingDialog() }
+        )
+    }
+
     // Detail Dialog
     if (selectedNotification != null) {
         NotificationDetailDialog(
@@ -335,7 +373,7 @@ private fun AppMainScaffold(
                         onDeleteSingle = { viewModel.deleteNotification(it) },
                         onDeleteSelected = { viewModel.deleteSelected() },
                         onClearSelection = { viewModel.clearSelection() },
-                        onRequestPermission = { viewModel.openNotificationSettings() },
+                        onRequestPermission = { viewModel.openOnboardingDialog() },
                         onUnlockVault = { viewModel.openUnlockPinDialog() }
                     )
                 }
@@ -389,7 +427,7 @@ private fun AppMainScaffold(
                         },
                         onSendTelegramTestMessage = { viewModel.sendTelegramTestMessage() },
                         onSendLocationToTelegram = { onResult -> viewModel.sendLocationToTelegram(onResult) },
-                        onOpenNotificationSettings = { viewModel.openNotificationSettings() },
+                        onOpenNotificationSettings = { viewModel.openOnboardingDialog() },
                         onOpenSetPinDialog = { viewModel.openSetPinDialog() },
                         onDisablePin = { viewModel.disablePinProtection() },
                         onLockVault = { viewModel.lockVault() },

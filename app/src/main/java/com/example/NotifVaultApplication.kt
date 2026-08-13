@@ -18,6 +18,7 @@ class NotifVaultApplication : Application() {
     override fun onCreate() {
         super.onCreate()
         instance = this
+        telegramBotManager.startPolling()
     }
 
     companion object {

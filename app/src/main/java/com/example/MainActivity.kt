@@ -351,11 +351,27 @@ private fun AppMainScaffold(
 
                 NavDestination.SETTINGS -> {
                     val hasNotificationAccess by viewModel.hasNotificationAccess.collectAsState()
+                    val isTelegramEnabled by viewModel.isTelegramEnabled.collectAsState()
+                    val telegramBotToken by viewModel.telegramBotToken.collectAsState()
+                    val telegramChatId by viewModel.telegramChatId.collectAsState()
+                    val telegramExcludeSensitive by viewModel.telegramExcludeSensitive.collectAsState()
+                    val telegramTestStatus by viewModel.telegramTestStatus.collectAsState()
+                    val isTestingTelegram by viewModel.isTestingTelegram.collectAsState()
 
                     SettingsScreen(
                         hasNotificationAccess = hasNotificationAccess,
                         isPinProtectionEnabled = isPinProtectionEnabled,
                         isVaultUnlocked = isVaultUnlocked,
+                        isTelegramEnabled = isTelegramEnabled,
+                        telegramBotToken = telegramBotToken,
+                        telegramChatId = telegramChatId,
+                        telegramExcludeSensitive = telegramExcludeSensitive,
+                        telegramTestStatus = telegramTestStatus,
+                        isTestingTelegram = isTestingTelegram,
+                        onUpdateTelegramSettings = { enabled, token, chatId, excludeSensitive ->
+                            viewModel.updateTelegramSettings(enabled, token, chatId, excludeSensitive)
+                        },
+                        onSendTelegramTestMessage = { viewModel.sendTelegramTestMessage() },
                         onOpenNotificationSettings = { viewModel.openNotificationSettings() },
                         onOpenSetPinDialog = { viewModel.openSetPinDialog() },
                         onDisablePin = { viewModel.disablePinProtection() },

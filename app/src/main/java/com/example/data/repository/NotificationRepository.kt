@@ -13,6 +13,7 @@ import com.example.data.model.NotificationEntity
 import com.example.data.model.NotificationItem
 import com.example.data.model.TopAppStat
 import com.example.data.security.EncryptionManager
+import com.example.data.telegram.TelegramBotManager
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
@@ -26,7 +27,8 @@ import java.util.Locale
 
 class NotificationRepository(
     private val notificationDao: NotificationDao,
-    private val encryptionManager: EncryptionManager
+    private val encryptionManager: EncryptionManager,
+    private val telegramBotManager: TelegramBotManager? = null
 ) {
 
     private val otpRegex = Regex("""\b\d{4,6}\b|otp|pin|kode|verifikasi|password|sandi|transfer|saldo""", RegexOption.IGNORE_CASE)
@@ -108,7 +110,23 @@ class NotificationRepository(
             isRead = false
         )
 
-        notificationDao.insertNotification(entity)
+        val insertedId = notificationDao.insertNotification(entity)
+
+        // Meneruskan notifikasi ke Telegram Bot jika diaktifkan
+        try {
+            telegramBotManager?.sendNotification(
+                appName = appName,
+                title = cleanTitle,
+                text = cleanText,
+                subText = cleanSubText,
+                postTime = postTime,
+                isSensitive = isSensitive
+            )
+        } catch (e: Exception) {
+            // Abaikan kesalahan kirim ke Telegram agar proses lokal tetap lancar
+        }
+
+        return@withContext insertedId
     }
 
     private fun mapToItem(entity: NotificationEntity): NotificationItem {

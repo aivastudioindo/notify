@@ -46,7 +46,27 @@ class NotificationViewModel(application: Application) : AndroidViewModel(applica
 
     private val repository = (application as NotifVaultApplication).repository
     private val encryptionManager = (application as NotifVaultApplication).encryptionManager
+    private val telegramBotManager = (application as NotifVaultApplication).telegramBotManager
     private val context: Context get() = getApplication<Application>().applicationContext
+
+    // Telegram Bot Settings State
+    private val _isTelegramEnabled = MutableStateFlow(telegramBotManager.isEnabled())
+    val isTelegramEnabled: StateFlow<Boolean> = _isTelegramEnabled.asStateFlow()
+
+    private val _telegramBotToken = MutableStateFlow(telegramBotManager.getBotToken())
+    val telegramBotToken: StateFlow<String> = _telegramBotToken.asStateFlow()
+
+    private val _telegramChatId = MutableStateFlow(telegramBotManager.getChatId())
+    val telegramChatId: StateFlow<String> = _telegramChatId.asStateFlow()
+
+    private val _telegramExcludeSensitive = MutableStateFlow(telegramBotManager.isExcludeSensitive())
+    val telegramExcludeSensitive: StateFlow<Boolean> = _telegramExcludeSensitive.asStateFlow()
+
+    private val _telegramTestStatus = MutableStateFlow<String?>(null)
+    val telegramTestStatus: StateFlow<String?> = _telegramTestStatus.asStateFlow()
+
+    private val _isTestingTelegram = MutableStateFlow(false)
+    val isTestingTelegram: StateFlow<Boolean> = _isTestingTelegram.asStateFlow()
 
     private val _currentDestination = MutableStateFlow(NavDestination.ALL_NOTIFICATIONS)
     val currentDestination: StateFlow<NavDestination> = _currentDestination.asStateFlow()
@@ -280,6 +300,31 @@ class NotificationViewModel(application: Application) : AndroidViewModel(applica
         encryptionManager.setPinProtection(false, null)
         _isPinProtectionEnabled.value = false
         _isVaultUnlocked.value = true
+    }
+
+    // Telegram Bot Control Methods
+    fun updateTelegramSettings(
+        enabled: Boolean,
+        token: String,
+        chatId: String,
+        excludeSensitive: Boolean
+    ) {
+        _isTelegramEnabled.value = enabled
+        _telegramBotToken.value = token
+        _telegramChatId.value = chatId
+        _telegramExcludeSensitive.value = excludeSensitive
+        telegramBotManager.saveSettings(enabled, token, chatId, excludeSensitive)
+        _telegramTestStatus.value = null
+    }
+
+    fun sendTelegramTestMessage() {
+        viewModelScope.launch {
+            _isTestingTelegram.value = true
+            _telegramTestStatus.value = "Mengirim pesan tes ke Telegram..."
+            val result = telegramBotManager.testConnection(_telegramBotToken.value, _telegramChatId.value)
+            _telegramTestStatus.value = result
+            _isTestingTelegram.value = false
+        }
     }
 
     private fun getTimeRangeForFilter(filter: DateFilter): Pair<Long, Long> {

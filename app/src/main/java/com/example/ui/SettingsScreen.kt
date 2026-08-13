@@ -20,22 +20,34 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.DeleteSweep
+import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Key
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.NotificationsActive
 import androidx.compose.material.icons.filled.Security
+import androidx.compose.material.icons.filled.Send
+import androidx.compose.material.icons.filled.SmartToy
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Checkbox
+import androidx.compose.material3.CheckboxDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -57,6 +69,16 @@ fun SettingsScreen(
     hasNotificationAccess: Boolean,
     isPinProtectionEnabled: Boolean,
     isVaultUnlocked: Boolean,
+    // Telegram Bot parameters
+    isTelegramEnabled: Boolean = false,
+    telegramBotToken: String = "",
+    telegramChatId: String = "",
+    telegramExcludeSensitive: Boolean = true,
+    telegramTestStatus: String? = null,
+    isTestingTelegram: Boolean = false,
+    onUpdateTelegramSettings: (enabled: Boolean, token: String, chatId: String, excludeSensitive: Boolean) -> Unit = { _, _, _, _ -> },
+    onSendTelegramTestMessage: () -> Unit = {},
+    // Action handlers
     onOpenNotificationSettings: () -> Unit,
     onOpenSetPinDialog: () -> Unit,
     onDisablePin: () -> Unit,
@@ -64,6 +86,11 @@ fun SettingsScreen(
     onClearAllData: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    var botTokenInput by remember(telegramBotToken) { mutableStateOf(telegramBotToken) }
+    var chatIdInput by remember(telegramChatId) { mutableStateOf(telegramChatId) }
+    var excludeSensitiveInput by remember(telegramExcludeSensitive) { mutableStateOf(telegramExcludeSensitive) }
+    var isGuideVisible by remember { mutableStateOf(false) }
+
     LazyColumn(
         modifier = modifier
             .fillMaxSize()
@@ -146,6 +173,249 @@ fun SettingsScreen(
                                 style = MaterialTheme.typography.labelMedium,
                                 fontWeight = FontWeight.Medium
                             )
+                        }
+                    }
+                }
+            }
+        }
+
+        // Section: Telegram Bot Integration
+        item {
+            Card(
+                shape = RoundedCornerShape(20.dp),
+                colors = CardDefaults.cardColors(containerColor = MinimalSurfaceElevated),
+                border = BorderStroke(1.dp, MinimalBorder),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Column(modifier = Modifier.padding(18.dp)) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Box(
+                            modifier = Modifier
+                                .size(36.dp)
+                                .clip(CircleShape)
+                                .background(MinimalCardBackground),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.SmartToy,
+                                contentDescription = null,
+                                tint = Color(0xFF2AABEE), // Telegram Blue Accent
+                                modifier = Modifier.size(18.dp)
+                            )
+                        }
+                        Spacer(modifier = Modifier.width(12.dp))
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = "Penerusan Bot Telegram",
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.SemiBold,
+                                color = MinimalTextPrimary
+                            )
+                            Text(
+                                text = "Kirim notifikasi otomatis ke bot Telegram Anda",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MinimalTextMuted
+                            )
+                        }
+                        Switch(
+                            checked = isTelegramEnabled,
+                            onCheckedChange = { enabled ->
+                                onUpdateTelegramSettings(enabled, botTokenInput, chatIdInput, excludeSensitiveInput)
+                            },
+                            colors = SwitchDefaults.colors(
+                                checkedThumbColor = MinimalDarkBackground,
+                                checkedTrackColor = Color(0xFF2AABEE),
+                                uncheckedThumbColor = MinimalTextMuted,
+                                uncheckedTrackColor = MinimalCardBackground
+                            )
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    // Bot Token Field
+                    Text(
+                        text = "Bot Token Telegram",
+                        style = MaterialTheme.typography.labelMedium,
+                        fontWeight = FontWeight.SemiBold,
+                        color = MinimalTextPrimary
+                    )
+                    Spacer(modifier = Modifier.height(6.dp))
+                    OutlinedTextField(
+                        value = botTokenInput,
+                        onValueChange = {
+                            botTokenInput = it
+                            onUpdateTelegramSettings(isTelegramEnabled, it, chatIdInput, excludeSensitiveInput)
+                        },
+                        placeholder = { Text("Contoh: 123456789:ABCdefGhIJKlmNoPQRsTUVwxyZ", color = MinimalTextMuted) },
+                        singleLine = true,
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = Color(0xFF2AABEE),
+                            unfocusedBorderColor = MinimalBorder,
+                            focusedContainerColor = MinimalCardBackground,
+                            unfocusedContainerColor = MinimalCardBackground,
+                            focusedTextColor = MinimalTextPrimary,
+                            unfocusedTextColor = MinimalTextPrimary
+                        ),
+                        shape = RoundedCornerShape(12.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    )
+
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    // Chat ID Field
+                    Text(
+                        text = "Telegram Chat ID / Channel ID",
+                        style = MaterialTheme.typography.labelMedium,
+                        fontWeight = FontWeight.SemiBold,
+                        color = MinimalTextPrimary
+                    )
+                    Spacer(modifier = Modifier.height(6.dp))
+                    OutlinedTextField(
+                        value = chatIdInput,
+                        onValueChange = {
+                            chatIdInput = it
+                            onUpdateTelegramSettings(isTelegramEnabled, botTokenInput, it, excludeSensitiveInput)
+                        },
+                        placeholder = { Text("Contoh: 987654321 atau @nama_channel", color = MinimalTextMuted) },
+                        singleLine = true,
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = Color(0xFF2AABEE),
+                            unfocusedBorderColor = MinimalBorder,
+                            focusedContainerColor = MinimalCardBackground,
+                            unfocusedContainerColor = MinimalCardBackground,
+                            focusedTextColor = MinimalTextPrimary,
+                            unfocusedTextColor = MinimalTextPrimary
+                        ),
+                        shape = RoundedCornerShape(12.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    )
+
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    // Privacy option: Exclude Sensitive OTP/Passwords
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Checkbox(
+                            checked = excludeSensitiveInput,
+                            onCheckedChange = { checked ->
+                                excludeSensitiveInput = checked
+                                onUpdateTelegramSettings(isTelegramEnabled, botTokenInput, chatIdInput, checked)
+                            },
+                            colors = CheckboxDefaults.colors(
+                                checkedColor = Color(0xFF2AABEE),
+                                uncheckedColor = MinimalTextMuted
+                            )
+                        )
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text(
+                            text = "Abaikan OTP / Kode Sandi Sensitif (Disarankan)",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MinimalTextPrimary
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(14.dp))
+
+                    // Test Telegram Bot Button
+                    Button(
+                        onClick = onSendTelegramTestMessage,
+                        enabled = !isTestingTelegram && botTokenInput.isNotBlank() && chatIdInput.isNotBlank(),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = Color(0xFF2AABEE),
+                            contentColor = Color.White,
+                            disabledContainerColor = MinimalCardBackground,
+                            disabledContentColor = MinimalTextMuted
+                        ),
+                        shape = RoundedCornerShape(12.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        if (isTestingTelegram) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(18.dp),
+                                color = Color.White,
+                                strokeWidth = 2.dp
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text("Mengirim Tes...", style = MaterialTheme.typography.labelMedium)
+                        } else {
+                            Icon(Icons.Default.Send, contentDescription = null, modifier = Modifier.size(16.dp))
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text("Tes Kirim Pesan ke Telegram", style = MaterialTheme.typography.labelMedium)
+                        }
+                    }
+
+                    // Test Status Banner
+                    if (telegramTestStatus != null) {
+                        Spacer(modifier = Modifier.height(10.dp))
+                        val isSuccess = telegramTestStatus.startsWith("SUCCESS")
+                        Card(
+                            shape = RoundedCornerShape(10.dp),
+                            colors = CardDefaults.cardColors(
+                                containerColor = if (isSuccess) Color(0xFF1B3B2B) else Color(0xFF3D1E24)
+                            ),
+                            border = BorderStroke(
+                                1.dp,
+                                if (isSuccess) Color(0xFF25D366) else MinimalRoseText
+                            ),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text(
+                                text = telegramTestStatus,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = if (isSuccess) Color(0xFF80FFB4) else Color(0xFFFFB4B4),
+                                modifier = Modifier.padding(12.dp)
+                            )
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(10.dp))
+
+                    // Expandable Help Guide
+                    OutlinedButton(
+                        onClick = { isGuideVisible = !isGuideVisible },
+                        shape = RoundedCornerShape(10.dp),
+                        border = BorderStroke(1.dp, MinimalBorder),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Icon(Icons.Default.Info, contentDescription = null, tint = MinimalTextMuted, modifier = Modifier.size(16.dp))
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text(
+                            text = if (isGuideVisible) "Sembunyikan Panduan Bot" else "Cara Membuat Bot & Chat ID",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MinimalTextMuted
+                        )
+                    }
+
+                    if (isGuideVisible) {
+                        Spacer(modifier = Modifier.height(10.dp))
+                        Card(
+                            shape = RoundedCornerShape(12.dp),
+                            colors = CardDefaults.cardColors(containerColor = MinimalCardBackground),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Column(modifier = Modifier.padding(12.dp)) {
+                                Text(
+                                    text = "📖 Langkah Mudah Menghubungkan Telegram:",
+                                    style = MaterialTheme.typography.labelMedium,
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color(0xFF2AABEE)
+                                )
+                                Spacer(modifier = Modifier.height(6.dp))
+                                Text(
+                                    text = "1. Buka aplikasi Telegram lalu cari @BotFather\n" +
+                                            "2. Kirim perintah /newbot dan ikuti petunjuk nama bot\n" +
+                                            "3. Salin API Token (misal 123456:ABC...) ke kolom Bot Token di atas\n" +
+                                            "4. Buka bot Anda lalu tekan /start\n" +
+                                            "5. Cari @userinfobot di Telegram lalu tekan /start untuk melihat Chat ID Anda\n" +
+                                            "6. Salin Chat ID ke kolom di atas lalu tekan 'Tes Kirim Pesan'",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MinimalTextPrimary,
+                                    lineHeight = MaterialTheme.typography.bodySmall.lineHeight * 1.3f
+                                )
+                            }
                         }
                     }
                 }

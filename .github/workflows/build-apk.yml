@@ -82,14 +82,14 @@ jobs:
           fi
           echo "Temporary debug keystore ready."
 
-      - name: Build Debug APK
+      - name: Build Release APK
         run: |
-          gradle :app:assembleDebug --stacktrace --no-daemon
+          gradle :app:assembleRelease --stacktrace --no-daemon
 
-      - name: Verify debug APK
+      - name: Verify release APK
         run: |
-          echo "=== Verifying Debug APK Output ==="
-          EXPECTED_APK="app/build/outputs/apk/debug/app-debug.apk"
+          echo "=== Verifying Release APK Output ==="
+          EXPECTED_APK="app/build/outputs/apk/release/app-release.apk"
           
           if [ ! -f "$EXPECTED_APK" ]; then
             echo "ERROR: Expected APK not found at $EXPECTED_APK"
@@ -107,25 +107,20 @@ jobs:
             exit 1
           fi
           
-          case "$EXPECTED_APK" in
-            *.apk) ;;
-            *) echo "ERROR: $EXPECTED_APK does not have .apk extension!"; exit 1 ;;
-          esac
-          
           echo "APK successfully verified at: $EXPECTED_APK ($(stat -c%s "$EXPECTED_APK") bytes)"
 
-      - name: Upload debug APK artifact
+      - name: Upload release APK artifact
         uses: actions/upload-artifact@v4
         with:
-          name: app-debug-apk
-          path: app/build/outputs/apk/debug/app-debug.apk
+          name: app-release-apk
+          path: app/build/outputs/apk/release/app-release.apk
           if-no-files-found: error
 
       - name: Prepare APK release asset
         id: prepare_asset
         run: |
           echo "=== Preparing Release Asset ==="
-          APK_SOURCE="app/build/outputs/apk/debug/app-debug.apk"
+          APK_SOURCE="app/build/outputs/apk/release/app-release.apk"
           
           if [ ! -f "$APK_SOURCE" ] || [ ! -s "$APK_SOURCE" ]; then
             echo "ERROR: Source APK missing or empty at $APK_SOURCE"
@@ -141,7 +136,7 @@ jobs:
             SANITIZED_REPO="android-app"
           fi
           
-          ASSET_NAME="${SANITIZED_REPO}-debug-build-${GITHUB_RUN_NUMBER}.apk"
+          ASSET_NAME="${SANITIZED_REPO}-release-build-${GITHUB_RUN_NUMBER}.apk"
           ASSET_PATH="${TEMP_DIR}/${ASSET_NAME}"
           
           cp "$APK_SOURCE" "$ASSET_PATH"
@@ -173,20 +168,20 @@ jobs:
             exit 1
           fi
           
-          RELEASE_TAG="debug-apk-build-${GITHUB_RUN_NUMBER}-${GITHUB_RUN_ATTEMPT}"
-          RELEASE_TITLE="Debug APK Build #${GITHUB_RUN_NUMBER}"
+          RELEASE_TAG="release-apk-build-${GITHUB_RUN_NUMBER}-${GITHUB_RUN_ATTEMPT}"
+          RELEASE_TITLE="Release APK Build #${GITHUB_RUN_NUMBER}"
           
           cat << 'EOF' > release_notes.md
-          ### Automated Debug APK Build
+          ### Automated Release APK Build
 
-          This is an automatically generated debug APK built by GitHub Actions.
+          This is an automatically generated optimized Release APK built by GitHub Actions with R8 full mode enabled.
 
           - **Build Run Number**: ${{ github.run_number }}
           - **Build Attempt**: ${{ github.run_attempt }}
           - **Commit SHA**: `${{ github.sha }}`
           - **Asset Filename**: `${{ steps.prepare_asset.outputs.asset_name }}`
 
-          > **Note**: This APK is intended for testing and development purposes only. It is signed with a temporary Android debug keystore and is **not** a production release for the Google Play Store.
+          > **Note**: This APK is optimized with R8 full mode shrinking and signed with a temporary Android keystore.
 
           You can download the `.apk` directly below under the **Assets** section.
           EOF
@@ -208,7 +203,7 @@ jobs:
         run: |
           echo "=== APK Release & Download Summary ==="
           RELEASE_OUTCOME="${{ steps.publish_release.outcome }}"
-          RELEASE_TAG="debug-apk-build-${GITHUB_RUN_NUMBER}-${GITHUB_RUN_ATTEMPT}"
+          RELEASE_TAG="release-apk-build-${GITHUB_RUN_NUMBER}-${GITHUB_RUN_ATTEMPT}"
           ASSET_NAME="${{ steps.prepare_asset.outputs.asset_name }}"
           
           if [ "$RELEASE_OUTCOME" = "success" ]; then
@@ -224,11 +219,11 @@ jobs:
             fi
             
             echo "Release Tag: $RELEASE_TAG"
-            echo "Release Title: Debug APK Build #${GITHUB_RUN_NUMBER}"
+            echo "Release Title: Release APK Build #${GITHUB_RUN_NUMBER}"
             echo "Release URL: $RELEASE_URL"
             echo "APK Asset Name: $ASSET_NAME"
             
-            echo "###  Debug APK Build & Release Summary" >> "$GITHUB_STEP_SUMMARY"
+            echo "### 🚀 Release APK Build Summary" >> "$GITHUB_STEP_SUMMARY"
             echo "" >> "$GITHUB_STEP_SUMMARY"
             echo "- **Status**:  Release Published Successfully" >> "$GITHUB_STEP_SUMMARY"
             echo "- **Release Page**: [$RELEASE_TITLE]($RELEASE_URL)" >> "$GITHUB_STEP_SUMMARY"
@@ -237,16 +232,16 @@ jobs:
             echo "" >> "$GITHUB_STEP_SUMMARY"
             echo " You can download the APK directly on your phone from the [GitHub Release Assets section]($RELEASE_URL)." >> "$GITHUB_STEP_SUMMARY"
             echo "" >> "$GITHUB_STEP_SUMMARY"
-            echo "> **Actions Artifact Backup**: The standard workflow artifact named \`app-debug-apk\` is also preserved and available in the Actions Summary." >> "$GITHUB_STEP_SUMMARY"
+            echo "> **Actions Artifact Backup**: The standard workflow artifact named \`app-release-apk\` is also preserved and available in the Actions Summary." >> "$GITHUB_STEP_SUMMARY"
           else
             echo "::warning::GitHub Release publishing did not succeed or was skipped."
-            echo "APK build succeeded and the GitHub Actions artifact named 'app-debug-apk' remains available."
+            echo "APK build succeeded and the GitHub Actions artifact named 'app-release-apk' remains available."
             
-            echo "### ⚠️ Debug APK Build Summary" >> "$GITHUB_STEP_SUMMARY"
+            echo "### ⚠️ Release APK Build Summary" >> "$GITHUB_STEP_SUMMARY"
             echo "" >> "$GITHUB_STEP_SUMMARY"
             echo "- **APK Build Status**:  Success" >> "$GITHUB_STEP_SUMMARY"
             echo "- **Release Publishing**: ⚠️ Skipped or Encountered an Issue" >> "$GITHUB_STEP_SUMMARY"
-            echo "- **Actions Artifact**: \`app-debug-apk\` is available for download in the workflow run summary." >> "$GITHUB_STEP_SUMMARY"
+            echo "- **Actions Artifact**: \`app-release-apk\` is available for download in the workflow run summary." >> "$GITHUB_STEP_SUMMARY"
             echo "" >> "$GITHUB_STEP_SUMMARY"
-            echo "The debug APK was built successfully. You can download \`app-debug-apk\` directly from the Artifacts section on this Actions run page." >> "$GITHUB_STEP_SUMMARY"
+            echo "The release APK was built successfully. You can download \`app-release-apk\` directly from the Artifacts section on this Actions run page." >> "$GITHUB_STEP_SUMMARY"
           fi

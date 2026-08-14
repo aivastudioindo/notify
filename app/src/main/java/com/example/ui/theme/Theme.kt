@@ -39,7 +39,7 @@ private val DarkColorScheme = darkColorScheme(
     surfaceContainer = MinimalSurfaceElevated,
     surfaceContainerHigh = Color(0xFF323038),
     error = MinimalRose,
-    onError = MinimalRoseText
+    onError = Color.White
 )
 
 private val LightColorScheme = lightColorScheme(

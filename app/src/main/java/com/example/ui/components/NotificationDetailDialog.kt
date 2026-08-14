@@ -337,9 +337,9 @@ fun NotificationDetailDialog(
                         modifier = Modifier.weight(1f),
                         shape = RoundedCornerShape(12.dp)
                     ) {
-                        Icon(Icons.Default.Delete, contentDescription = null, tint = MinimalRoseText, modifier = Modifier.size(16.dp))
+                        Icon(Icons.Default.Delete, contentDescription = null, tint = Color.White, modifier = Modifier.size(16.dp))
                         Spacer(modifier = Modifier.width(6.dp))
-                        Text("Hapus", style = MaterialTheme.typography.labelMedium, color = MinimalRoseText)
+                        Text("Hapus", style = MaterialTheme.typography.labelMedium, color = Color.White, fontWeight = FontWeight.Bold)
                     }
                 }
             }

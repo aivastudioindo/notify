@@ -23,8 +23,11 @@ val MinimalEmerald = Color(0xFF25D366) // WhatsApp style
 val MinimalGoogleRed = Color(0xFFEA4335) // Gmail style
 val MinimalBankBlue = Color(0xFF005696) // Banking style
 val MinimalAmber = Color(0xFFFFB74D)
-val MinimalRose = Color(0xFFF2B8B5)
-val MinimalRoseText = Color(0xFF601410)
+
+// Bright, high-contrast, highly visible red color system
+val MinimalRose = Color(0xFFFF5252) // Vivid bright red (for borders, badges, warning containers)
+val MinimalRoseText = Color(0xFFFF8A80) // Bright vivid light-coral red (highly readable text/icons on dark bg)
+val MinimalRoseOnContainer = Color(0xFFFFFFFF) // Crisp white text on filled red buttons
 
 // Light Theme Alternates (Clean minimal light)
 val MinimalLightBackground = Color(0xFFF7F2FA)

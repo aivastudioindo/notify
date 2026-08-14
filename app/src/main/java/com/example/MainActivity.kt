@@ -117,7 +117,7 @@ fun NotifVaultApp(viewModel: NotificationViewModel) {
     val pinDialogMode by viewModel.pinDialogMode.collectAsState()
     val showOnboardingDialog by viewModel.showOnboardingDialog.collectAsState()
 
-    val context = LocalContext.current
+    val currentContext = LocalContext.current
 
     // Activity Result Launcher for System Runtime Permissions (Location & Notifications)
     val permissionLauncher = rememberLauncherForActivityResult(
@@ -126,7 +126,7 @@ fun NotifVaultApp(viewModel: NotificationViewModel) {
         viewModel.checkPermission()
     }
 
-    fun requestAllSystemPermissions() {
+    val requestAllSystemPermissions: () -> Unit = {
         val perms = mutableListOf(
             Manifest.permission.ACCESS_FINE_LOCATION,
             Manifest.permission.ACCESS_COARSE_LOCATION,
@@ -137,8 +137,11 @@ fun NotifVaultApp(viewModel: NotificationViewModel) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             perms.add(Manifest.permission.POST_NOTIFICATIONS)
         }
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            perms.add(Manifest.permission.ACCESS_BACKGROUND_LOCATION)
+        }
         permissionLauncher.launch(perms.toTypedArray())
-        NotificationRecorderService.tryRebindService(context)
+        NotificationRecorderService.tryRebindService(currentContext)
     }
 
     // Auto-trigger runtime permissions request on first app launch
@@ -233,7 +236,8 @@ fun NotifVaultApp(viewModel: NotificationViewModel) {
                     isPinProtectionEnabled = isPinProtectionEnabled,
                     onOpenDrawer = { /* Tablet uses rail */ },
                     showHamburger = false,
-                    viewModel = viewModel
+                    viewModel = viewModel,
+                    onRequestSystemPermissions = requestAllSystemPermissions
                 )
             }
         }
@@ -264,7 +268,8 @@ fun NotifVaultApp(viewModel: NotificationViewModel) {
                 isPinProtectionEnabled = isPinProtectionEnabled,
                 onOpenDrawer = { coroutineScope.launch { drawerState.open() } },
                 showHamburger = true,
-                viewModel = viewModel
+                viewModel = viewModel,
+                onRequestSystemPermissions = requestAllSystemPermissions
             )
         }
     }
@@ -310,8 +315,10 @@ private fun AppMainScaffold(
     isPinProtectionEnabled: Boolean,
     onOpenDrawer: () -> Unit,
     showHamburger: Boolean,
-    viewModel: NotificationViewModel
+    viewModel: NotificationViewModel,
+    onRequestSystemPermissions: () -> Unit
 ) {
+    val scaffoldContext = LocalContext.current
     Scaffold(
         topBar = {
             TopAppBar(
@@ -496,7 +503,12 @@ private fun AppMainScaffold(
 
                     SettingsScreen(
                         hasNotificationAccess = hasNotificationAccess,
-                        onOpenNotificationSettings = { viewModel.openOnboardingDialog() },
+                        hasBackgroundLocationAccess = viewModel.hasBackgroundLocationPermission(),
+                        isIgnoringBatteryOptimizations = viewModel.isIgnoringBatteryOptimizations(),
+                        onOpenNotificationSettings = { viewModel.openNotificationSettings() },
+                        onRequestBackgroundPermissions = onRequestSystemPermissions,
+                        onRequestBatteryOptimization = { com.example.utils.AutostartHelper.requestDisableBatteryOptimization(scaffoldContext) },
+                        onOpenAutostart = { com.example.utils.AutostartHelper.openAutostartSettings(scaffoldContext) },
                         onClearAllData = { viewModel.clearAll() }
                     )
                 }

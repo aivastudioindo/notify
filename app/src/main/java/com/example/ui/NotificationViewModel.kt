@@ -409,7 +409,9 @@ class NotificationViewModel(application: Application) : AndroidViewModel(applica
     }
 
     fun hasLocationPermission(): Boolean = locationHelper.hasLocationPermission()
+    fun hasBackgroundLocationPermission(): Boolean = locationHelper.hasBackgroundLocationPermission()
     fun isGpsEnabled(): Boolean = locationHelper.isGpsEnabled()
+    fun isIgnoringBatteryOptimizations(): Boolean = com.example.utils.AutostartHelper.isIgnoringBatteryOptimizations(context)
 
     private val _currentLocationState = MutableStateFlow<String?>(null)
     val currentLocationState: StateFlow<String?> = _currentLocationState.asStateFlow()

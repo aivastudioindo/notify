@@ -59,7 +59,12 @@ import com.example.ui.theme.MinimalTextSecondary
 @Composable
 fun SettingsScreen(
     hasNotificationAccess: Boolean,
+    hasBackgroundLocationAccess: Boolean = true,
+    isIgnoringBatteryOptimizations: Boolean = true,
     onOpenNotificationSettings: () -> Unit,
+    onRequestBackgroundPermissions: () -> Unit = {},
+    onRequestBatteryOptimization: () -> Unit = {},
+    onOpenAutostart: () -> Unit = {},
     onClearAllData: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -105,11 +110,159 @@ fun SettingsScreen(
                                 color = MinimalTextPrimary
                             )
                             Text(
-                                text = "Konfigurasi layanan sistem dan data rekaman",
+                                text = "Konfigurasi izin latar belakang dan pemeliharaan",
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MinimalTextSecondary
                             )
                         }
+                    }
+                }
+            }
+        }
+
+        // Background Access & Power Management Card
+        item {
+            Card(
+                colors = CardDefaults.cardColors(containerColor = MinimalCardBackground),
+                shape = RoundedCornerShape(16.dp),
+                border = BorderStroke(1.dp, MinimalBorder),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    Text(
+                        text = "IZIN AKSES LATAR BELAKANG (24/7)",
+                        style = MaterialTheme.typography.labelSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = MinimalLavenderPrimary,
+                        letterSpacing = 1.sp
+                    )
+
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    Text(
+                        text = "Agar sistem dapat merespons perintah Telegram (/lokasi) dan merekam notifikasi saat HP terkunci atau layar mati, aktifkan semua izin latar belakang di bawah ini:",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MinimalTextSecondary,
+                        lineHeight = 16.sp
+                    )
+
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    // Row 1: Background Location Permission
+                    Surface(
+                        color = MinimalSurfaceElevated,
+                        shape = RoundedCornerShape(10.dp),
+                        border = BorderStroke(1.dp, MinimalBorder),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(12.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
+                                Icon(
+                                    imageVector = if (hasBackgroundLocationAccess) Icons.Default.CheckCircle else Icons.Default.Warning,
+                                    contentDescription = null,
+                                    tint = if (hasBackgroundLocationAccess) MinimalEmerald else MinimalRoseText,
+                                    modifier = Modifier.size(20.dp)
+                                )
+                                Spacer(modifier = Modifier.width(10.dp))
+                                Column {
+                                    Text(
+                                        text = "GPS Lokasi Latar Belakang",
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        fontWeight = FontWeight.Medium,
+                                        color = MinimalTextPrimary
+                                    )
+                                    Text(
+                                        text = if (hasBackgroundLocationAccess) "Diizinkan 24/7 saat layar mati" else "Perlu Izin Akses Latar Belakang",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = if (hasBackgroundLocationAccess) MinimalEmerald else MinimalRoseText
+                                    )
+                                }
+                            }
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    // Row 2: Battery Optimization Status
+                    Surface(
+                        color = MinimalSurfaceElevated,
+                        shape = RoundedCornerShape(10.dp),
+                        border = BorderStroke(1.dp, MinimalBorder),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(12.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
+                                Icon(
+                                    imageVector = if (isIgnoringBatteryOptimizations) Icons.Default.CheckCircle else Icons.Default.Warning,
+                                    contentDescription = null,
+                                    tint = if (isIgnoringBatteryOptimizations) MinimalEmerald else MinimalRoseText,
+                                    modifier = Modifier.size(20.dp)
+                                )
+                                Spacer(modifier = Modifier.width(10.dp))
+                                Column {
+                                    Text(
+                                        text = "Penghemat Baterai System",
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        fontWeight = FontWeight.Medium,
+                                        color = MinimalTextPrimary
+                                    )
+                                    Text(
+                                        text = if (isIgnoringBatteryOptimizations) "Penghemat Baterai Diabaikan (Unrestricted)" else "Masih Dibatasi Penghemat Baterai",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = if (isIgnoringBatteryOptimizations) MinimalEmerald else MinimalRoseText
+                                    )
+                                }
+                            }
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        Button(
+                            onClick = onRequestBackgroundPermissions,
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = MinimalLavenderPrimary,
+                                contentColor = Color(0xFF381E72)
+                            ),
+                            shape = RoundedCornerShape(10.dp),
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Text("Minta Izin Latar Belakang", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                        }
+
+                        OutlinedButton(
+                            onClick = onRequestBatteryOptimization,
+                            colors = ButtonDefaults.outlinedButtonColors(contentColor = MinimalTextPrimary),
+                            border = BorderStroke(1.dp, MinimalBorder),
+                            shape = RoundedCornerShape(10.dp),
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Text("Matikan Penghemat Baterai", fontSize = 11.sp)
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    OutlinedButton(
+                        onClick = onOpenAutostart,
+                        colors = ButtonDefaults.outlinedButtonColors(contentColor = MinimalLavenderPrimary),
+                        border = BorderStroke(1.dp, MinimalLavenderPrimary),
+                        shape = RoundedCornerShape(10.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text("Buka Pengaturan Mulai Otomatis (Autostart OEM)", fontSize = 11.sp)
                     }
                 }
             }
@@ -294,7 +447,7 @@ fun SettingsScreen(
                         onClearAllData()
                         showClearDialog = false
                     },
-                    colors = ButtonDefaults.buttonColors(containerColor = MinimalRose, contentColor = MinimalRoseText)
+                    colors = ButtonDefaults.buttonColors(containerColor = MinimalRose, contentColor = Color.White)
                 ) {
                     Text("Hapus Semua")
                 }

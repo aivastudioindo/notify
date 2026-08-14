@@ -2,7 +2,10 @@ package com.example.ui
 
 import android.Manifest
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.net.Uri
+import android.os.Build
+import androidx.core.content.ContextCompat
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.BorderStroke
@@ -74,6 +77,13 @@ fun LocationScreen(
 ) {
     val context = LocalContext.current
     var permissionGranted by remember(hasLocationPermission) { mutableStateOf(hasLocationPermission) }
+    var backgroundPermissionGranted by remember {
+        mutableStateOf(
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_BACKGROUND_LOCATION) == PackageManager.PERMISSION_GRANTED
+            } else true
+        )
+    }
     var locationResultText by remember(currentLocationState) { mutableStateOf(currentLocationState) }
     var telegramSendStatus by remember { mutableStateOf<String?>(null) }
     var isSendingTelegram by remember { mutableStateOf(false) }
@@ -84,6 +94,12 @@ fun LocationScreen(
         val fine = perms[Manifest.permission.ACCESS_FINE_LOCATION] == true
         val coarse = perms[Manifest.permission.ACCESS_COARSE_LOCATION] == true
         permissionGranted = fine || coarse
+    }
+
+    val backgroundPermissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission()
+    ) { isGranted ->
+        backgroundPermissionGranted = isGranted
     }
 
     LazyColumn(
@@ -214,6 +230,58 @@ fun LocationScreen(
                                     contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp)
                                 ) {
                                     Text("Izinkan", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                                }
+                            }
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    // Background Location Permission Row
+                    Surface(
+                        color = MinimalSurfaceElevated,
+                        shape = RoundedCornerShape(10.dp),
+                        border = BorderStroke(1.dp, MinimalBorder),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(12.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
+                                Icon(
+                                    imageVector = if (backgroundPermissionGranted) Icons.Default.CheckCircle else Icons.Default.Warning,
+                                    contentDescription = null,
+                                    tint = if (backgroundPermissionGranted) MinimalEmerald else MinimalRoseText,
+                                    modifier = Modifier.size(20.dp)
+                                )
+                                Spacer(modifier = Modifier.width(10.dp))
+                                Column {
+                                    Text(
+                                        text = "Akses Lokasi Latar Belakang (24/7)",
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        fontWeight = FontWeight.Medium,
+                                        color = MinimalTextPrimary
+                                    )
+                                    Text(
+                                        text = if (backgroundPermissionGranted) "Diizinkan (Siap respon Telegram saat lock)" else "Perlu izin 'Izinkan Setiap Saat'",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = if (backgroundPermissionGranted) MinimalEmerald else MinimalRoseText
+                                    )
+                                }
+                            }
+
+                            if (!backgroundPermissionGranted && Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                                Button(
+                                    onClick = {
+                                        backgroundPermissionLauncher.launch(Manifest.permission.ACCESS_BACKGROUND_LOCATION)
+                                    },
+                                    colors = ButtonDefaults.buttonColors(containerColor = MinimalLavenderPrimary, contentColor = Color(0xFF381E72)),
+                                    shape = RoundedCornerShape(8.dp),
+                                    contentPadding = PaddingValues(horizontal = 10.dp, vertical = 6.dp)
+                                ) {
+                                    Text("Izinkan 24/7", fontSize = 11.sp, fontWeight = FontWeight.Bold)
                                 }
                             }
                         }

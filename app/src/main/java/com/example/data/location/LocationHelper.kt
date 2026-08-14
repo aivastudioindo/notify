@@ -59,6 +59,17 @@ class LocationHelper(private val context: Context) {
         return finePermission || coarsePermission
     }
 
+    fun hasBackgroundLocationPermission(): Boolean {
+        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            ContextCompat.checkSelfPermission(
+                context,
+                Manifest.permission.ACCESS_BACKGROUND_LOCATION
+            ) == PackageManager.PERMISSION_GRANTED
+        } else {
+            hasLocationPermission()
+        }
+    }
+
     fun getCurrentLocation(
         onSuccess: (Location) -> Unit,
         onError: (String) -> Unit

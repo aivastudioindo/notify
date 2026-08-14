@@ -264,34 +264,11 @@ fun TelegramScreen(
 
                     Spacer(modifier = Modifier.height(16.dp))
 
-                    // Action Buttons
+                    // Action Buttons (Only Kirim GPS)
                     Row(
                         modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                        horizontalArrangement = Arrangement.Center
                     ) {
-                        Button(
-                            onClick = onSendTelegramTestMessage,
-                            enabled = !isTestingTelegram && token.isNotBlank() && chatId.isNotBlank(),
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = MinimalLavenderPrimary,
-                                contentColor = Color(0xFF381E72)
-                            ),
-                            shape = RoundedCornerShape(10.dp),
-                            modifier = Modifier.weight(1f)
-                        ) {
-                            if (isTestingTelegram) {
-                                CircularProgressIndicator(
-                                    modifier = Modifier.size(16.dp),
-                                    color = Color(0xFF381E72),
-                                    strokeWidth = 2.dp
-                                )
-                            } else {
-                                Icon(Icons.Default.Send, contentDescription = null, modifier = Modifier.size(16.dp))
-                                Spacer(modifier = Modifier.width(6.dp))
-                                Text("Tes Koneksi", fontSize = 12.sp, fontWeight = FontWeight.Bold)
-                            }
-                        }
-
                         OutlinedButton(
                             onClick = {
                                 isSendingLocation = true
@@ -304,7 +281,7 @@ fun TelegramScreen(
                             colors = ButtonDefaults.outlinedButtonColors(contentColor = MinimalTextPrimary),
                             border = BorderStroke(1.dp, MinimalBorder),
                             shape = RoundedCornerShape(10.dp),
-                            modifier = Modifier.weight(1f)
+                            modifier = Modifier.fillMaxWidth()
                         ) {
                             if (isSendingLocation) {
                                 CircularProgressIndicator(
@@ -315,40 +292,7 @@ fun TelegramScreen(
                             } else {
                                 Icon(Icons.Default.GpsFixed, contentDescription = null, modifier = Modifier.size(16.dp))
                                 Spacer(modifier = Modifier.width(6.dp))
-                                Text("Kirim GPS", fontSize = 12.sp)
-                            }
-                        }
-                    }
-
-                    // Test Status Feedback Card
-                    if (telegramTestStatus != null) {
-                        Spacer(modifier = Modifier.height(10.dp))
-                        val isSuccess = telegramTestStatus.contains("berhasil", ignoreCase = true) ||
-                                telegramTestStatus.contains("sukses", ignoreCase = true) ||
-                                telegramTestStatus.contains("terhubung", ignoreCase = true)
-
-                        Surface(
-                            color = if (isSuccess) MinimalEmerald.copy(alpha = 0.15f) else MinimalRose.copy(alpha = 0.15f),
-                            shape = RoundedCornerShape(8.dp),
-                            border = BorderStroke(1.dp, if (isSuccess) MinimalEmerald else MinimalRose),
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Row(
-                                modifier = Modifier.padding(10.dp),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Icon(
-                                    imageVector = if (isSuccess) Icons.Default.CheckCircle else Icons.Default.Warning,
-                                    contentDescription = null,
-                                    tint = if (isSuccess) MinimalEmerald else MinimalRoseText,
-                                    modifier = Modifier.size(16.dp)
-                                )
-                                Spacer(modifier = Modifier.width(8.dp))
-                                Text(
-                                    text = telegramTestStatus,
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = if (isSuccess) MinimalEmerald else MinimalRoseText
-                                )
+                                Text("Kirim Lokasi GPS ke Telegram", fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
                             }
                         }
                     }

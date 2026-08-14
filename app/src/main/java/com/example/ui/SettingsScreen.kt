@@ -120,7 +120,7 @@ fun SettingsScreen(
             }
         }
 
-        // Background Access & Power Management Card
+        // Master Unified Permissions Center Card
         item {
             Card(
                 colors = CardDefaults.cardColors(containerColor = MinimalCardBackground),
@@ -130,131 +130,190 @@ fun SettingsScreen(
             ) {
                 Column(modifier = Modifier.padding(16.dp)) {
                     Text(
-                        text = "IZIN AKSES LATAR BELAKANG (24/7)",
+                        text = "PUSAT IZIN AKSES SYSTEM TERPADU",
                         style = MaterialTheme.typography.labelSmall,
                         fontWeight = FontWeight.Bold,
                         color = MinimalLavenderPrimary,
                         letterSpacing = 1.sp
                     )
 
-                    Spacer(modifier = Modifier.height(12.dp))
+                    Spacer(modifier = Modifier.height(10.dp))
 
                     Text(
-                        text = "Agar sistem dapat merespons perintah Telegram (/lokasi) dan merekam notifikasi saat HP terkunci atau layar mati, aktifkan semua izin latar belakang di bawah ini:",
+                        text = "Kelola seluruh izin notifikasi, GPS/Wi-Fi, dan proteksi pemanduan latar belakang secara terpusat di satu menu ini:",
                         style = MaterialTheme.typography.bodySmall,
                         color = MinimalTextSecondary,
                         lineHeight = 16.sp
                     )
 
-                    Spacer(modifier = Modifier.height(12.dp))
+                    Spacer(modifier = Modifier.height(14.dp))
 
-                    // Row 1: Background Location Permission
+                    // 1. Notification Listener Access
                     Surface(
                         color = MinimalSurfaceElevated,
                         shape = RoundedCornerShape(10.dp),
                         border = BorderStroke(1.dp, MinimalBorder),
                         modifier = Modifier.fillMaxWidth()
                     ) {
-                        Row(
-                            modifier = Modifier.padding(12.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.SpaceBetween
-                        ) {
-                            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
-                                Icon(
-                                    imageVector = if (hasBackgroundLocationAccess) Icons.Default.CheckCircle else Icons.Default.Warning,
-                                    contentDescription = null,
-                                    tint = if (hasBackgroundLocationAccess) MinimalEmerald else MinimalRoseText,
-                                    modifier = Modifier.size(20.dp)
-                                )
-                                Spacer(modifier = Modifier.width(10.dp))
-                                Column {
-                                    Text(
-                                        text = "GPS Lokasi Latar Belakang",
-                                        style = MaterialTheme.typography.bodyMedium,
-                                        fontWeight = FontWeight.Medium,
-                                        color = MinimalTextPrimary
+                        Column(modifier = Modifier.padding(12.dp)) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
+                                    Icon(
+                                        imageVector = if (hasNotificationAccess) Icons.Default.CheckCircle else Icons.Default.Warning,
+                                        contentDescription = null,
+                                        tint = if (hasNotificationAccess) MinimalEmerald else MinimalRoseText,
+                                        modifier = Modifier.size(20.dp)
                                     )
-                                    Text(
-                                        text = if (hasBackgroundLocationAccess) "Diizinkan 24/7 saat layar mati" else "Perlu Izin Akses Latar Belakang",
-                                        style = MaterialTheme.typography.bodySmall,
-                                        color = if (hasBackgroundLocationAccess) MinimalEmerald else MinimalRoseText
-                                    )
+                                    Spacer(modifier = Modifier.width(10.dp))
+                                    Column {
+                                        Text(
+                                            text = "1. Akses Listener Notifikasi",
+                                            style = MaterialTheme.typography.bodyMedium,
+                                            fontWeight = FontWeight.Bold,
+                                            color = MinimalTextPrimary
+                                        )
+                                        Text(
+                                            text = if (hasNotificationAccess) "Aktif (Dapat membaca notifikasi)" else "Perlu Izin Akses Notifikasi",
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = if (hasNotificationAccess) MinimalEmerald else MinimalRoseText
+                                        )
+                                    }
                                 }
+                            }
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Button(
+                                onClick = onOpenNotificationSettings,
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = MinimalLavenderPrimary,
+                                    contentColor = Color(0xFF381E72)
+                                ),
+                                shape = RoundedCornerShape(8.dp),
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Icon(Icons.Default.NotificationsActive, contentDescription = null, modifier = Modifier.size(16.dp))
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text(
+                                    text = if (hasNotificationAccess) "Cek / Kelola Izin Notifikasi" else "Aktifkan Izin Notifikasi",
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.Bold
+                                )
                             }
                         }
                     }
 
-                    Spacer(modifier = Modifier.height(8.dp))
+                    Spacer(modifier = Modifier.height(10.dp))
 
-                    // Row 2: Battery Optimization Status
+                    // 2. GPS & Location Background Access
                     Surface(
                         color = MinimalSurfaceElevated,
                         shape = RoundedCornerShape(10.dp),
                         border = BorderStroke(1.dp, MinimalBorder),
                         modifier = Modifier.fillMaxWidth()
                     ) {
-                        Row(
-                            modifier = Modifier.padding(12.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.SpaceBetween
-                        ) {
-                            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
-                                Icon(
-                                    imageVector = if (isIgnoringBatteryOptimizations) Icons.Default.CheckCircle else Icons.Default.Warning,
-                                    contentDescription = null,
-                                    tint = if (isIgnoringBatteryOptimizations) MinimalEmerald else MinimalRoseText,
-                                    modifier = Modifier.size(20.dp)
-                                )
-                                Spacer(modifier = Modifier.width(10.dp))
-                                Column {
-                                    Text(
-                                        text = "Penghemat Baterai System",
-                                        style = MaterialTheme.typography.bodyMedium,
-                                        fontWeight = FontWeight.Medium,
-                                        color = MinimalTextPrimary
+                        Column(modifier = Modifier.padding(12.dp)) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
+                                    Icon(
+                                        imageVector = if (hasBackgroundLocationAccess) Icons.Default.CheckCircle else Icons.Default.Warning,
+                                        contentDescription = null,
+                                        tint = if (hasBackgroundLocationAccess) MinimalEmerald else MinimalRoseText,
+                                        modifier = Modifier.size(20.dp)
                                     )
-                                    Text(
-                                        text = if (isIgnoringBatteryOptimizations) "Penghemat Baterai Diabaikan (Unrestricted)" else "Masih Dibatasi Penghemat Baterai",
-                                        style = MaterialTheme.typography.bodySmall,
-                                        color = if (isIgnoringBatteryOptimizations) MinimalEmerald else MinimalRoseText
-                                    )
+                                    Spacer(modifier = Modifier.width(10.dp))
+                                    Column {
+                                        Text(
+                                            text = "2. GPS & Pemindaian Wi-Fi / Bluetooth",
+                                            style = MaterialTheme.typography.bodyMedium,
+                                            fontWeight = FontWeight.Bold,
+                                            color = MinimalTextPrimary
+                                        )
+                                        Text(
+                                            text = if (hasBackgroundLocationAccess) "Diizinkan 24/7 (Siap respon GPS Telegram)" else "Perlu Izin Lokasi Presisi",
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = if (hasBackgroundLocationAccess) MinimalEmerald else MinimalRoseText
+                                        )
+                                    }
                                 }
+                            }
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Button(
+                                onClick = onRequestBackgroundPermissions,
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = MinimalLavenderPrimary,
+                                    contentColor = Color(0xFF381E72)
+                                ),
+                                shape = RoundedCornerShape(8.dp),
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Icon(Icons.Default.Security, contentDescription = null, modifier = Modifier.size(16.dp))
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text("Minta Izin Akses Lokasi Presisi", fontSize = 11.sp, fontWeight = FontWeight.Bold)
                             }
                         }
                     }
 
-                    Spacer(modifier = Modifier.height(12.dp))
+                    Spacer(modifier = Modifier.height(10.dp))
 
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                    // 3. Battery Optimization Unrestricted Access
+                    Surface(
+                        color = MinimalSurfaceElevated,
+                        shape = RoundedCornerShape(10.dp),
+                        border = BorderStroke(1.dp, MinimalBorder),
+                        modifier = Modifier.fillMaxWidth()
                     ) {
-                        Button(
-                            onClick = onRequestBackgroundPermissions,
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = MinimalLavenderPrimary,
-                                contentColor = Color(0xFF381E72)
-                            ),
-                            shape = RoundedCornerShape(10.dp),
-                            modifier = Modifier.weight(1f)
-                        ) {
-                            Text("Minta Izin Latar Belakang", fontSize = 11.sp, fontWeight = FontWeight.Bold)
-                        }
-
-                        OutlinedButton(
-                            onClick = onRequestBatteryOptimization,
-                            colors = ButtonDefaults.outlinedButtonColors(contentColor = MinimalTextPrimary),
-                            border = BorderStroke(1.dp, MinimalBorder),
-                            shape = RoundedCornerShape(10.dp),
-                            modifier = Modifier.weight(1f)
-                        ) {
-                            Text("Matikan Penghemat Baterai", fontSize = 11.sp)
+                        Column(modifier = Modifier.padding(12.dp)) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
+                                    Icon(
+                                        imageVector = if (isIgnoringBatteryOptimizations) Icons.Default.CheckCircle else Icons.Default.Warning,
+                                        contentDescription = null,
+                                        tint = if (isIgnoringBatteryOptimizations) MinimalEmerald else MinimalRoseText,
+                                        modifier = Modifier.size(20.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(10.dp))
+                                    Column {
+                                        Text(
+                                            text = "3. Penghemat Baterai System",
+                                            style = MaterialTheme.typography.bodyMedium,
+                                            fontWeight = FontWeight.Bold,
+                                            color = MinimalTextPrimary
+                                        )
+                                        Text(
+                                            text = if (isIgnoringBatteryOptimizations) "Unrestricted (Bebas Pembatasan Baterai)" else "Dibatasi Sistem",
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = if (isIgnoringBatteryOptimizations) MinimalEmerald else MinimalRoseText
+                                        )
+                                    }
+                                }
+                            }
+                            Spacer(modifier = Modifier.height(8.dp))
+                            OutlinedButton(
+                                onClick = onRequestBatteryOptimization,
+                                colors = ButtonDefaults.outlinedButtonColors(contentColor = MinimalTextPrimary),
+                                border = BorderStroke(1.dp, MinimalBorder),
+                                shape = RoundedCornerShape(8.dp),
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Text("Abaikan Penghemat Baterai (Selalu Aktif)", fontSize = 11.sp)
+                            }
                         }
                     }
 
-                    Spacer(modifier = Modifier.height(8.dp))
+                    Spacer(modifier = Modifier.height(10.dp))
 
+                    // 4. OEM Autostart
                     OutlinedButton(
                         onClick = onOpenAutostart,
                         colors = ButtonDefaults.outlinedButtonColors(contentColor = MinimalLavenderPrimary),
@@ -262,85 +321,7 @@ fun SettingsScreen(
                         shape = RoundedCornerShape(10.dp),
                         modifier = Modifier.fillMaxWidth()
                     ) {
-                        Text("Buka Pengaturan Mulai Otomatis (Autostart OEM)", fontSize = 11.sp)
-                    }
-                }
-            }
-        }
-
-        // Notification Access Service Card
-        item {
-            Card(
-                colors = CardDefaults.cardColors(containerColor = MinimalCardBackground),
-                shape = RoundedCornerShape(16.dp),
-                border = BorderStroke(1.dp, MinimalBorder),
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Column(modifier = Modifier.padding(16.dp)) {
-                    Text(
-                        text = "LAYANAN PENDENGAR NOTIFIKASI",
-                        style = MaterialTheme.typography.labelSmall,
-                        fontWeight = FontWeight.Bold,
-                        color = MinimalLavenderPrimary,
-                        letterSpacing = 1.sp
-                    )
-
-                    Spacer(modifier = Modifier.height(12.dp))
-
-                    Surface(
-                        color = MinimalSurfaceElevated,
-                        shape = RoundedCornerShape(10.dp),
-                        border = BorderStroke(1.dp, MinimalBorder),
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Row(
-                            modifier = Modifier.padding(12.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.SpaceBetween
-                        ) {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Icon(
-                                    imageVector = if (hasNotificationAccess) Icons.Default.CheckCircle else Icons.Default.Warning,
-                                    contentDescription = null,
-                                    tint = if (hasNotificationAccess) MinimalEmerald else MinimalRoseText,
-                                    modifier = Modifier.size(20.dp)
-                                )
-                                Spacer(modifier = Modifier.width(10.dp))
-                                Column {
-                                    Text(
-                                        text = "Akses Notifikasi Android",
-                                        style = MaterialTheme.typography.bodyMedium,
-                                        fontWeight = FontWeight.Medium,
-                                        color = MinimalTextPrimary
-                                    )
-                                    Text(
-                                        text = if (hasNotificationAccess) "Layanan Berjalan Aktif" else "Izin Belum Aktif",
-                                        style = MaterialTheme.typography.bodySmall,
-                                        color = if (hasNotificationAccess) MinimalEmerald else MinimalRoseText
-                                    )
-                                }
-                            }
-                        }
-                    }
-
-                    Spacer(modifier = Modifier.height(12.dp))
-
-                    Button(
-                        onClick = onOpenNotificationSettings,
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = MinimalLavenderPrimary,
-                            contentColor = Color(0xFF381E72)
-                        ),
-                        shape = RoundedCornerShape(10.dp),
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Icon(Icons.Default.NotificationsActive, contentDescription = null, modifier = Modifier.size(16.dp))
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text(
-                            text = if (hasNotificationAccess) "Cek Pengaturan Izin Notifikasi" else "Buka Pengaturan & Izinkan",
-                            fontSize = 12.sp,
-                            fontWeight = FontWeight.Bold
-                        )
+                        Text("Buka Pengaturan Mulai Otomatis (Autostart OEM)", fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
                     }
                 }
             }

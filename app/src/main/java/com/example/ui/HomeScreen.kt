@@ -174,64 +174,7 @@ fun HomeScreen(
             }
         }
 
-        // Permission Banner if missing
-        if (!hasNotificationAccess) {
-            Card(
-                colors = CardDefaults.cardColors(containerColor = MinimalSurfaceElevated),
-                border = BorderStroke(1.dp, MinimalLavenderPrimary.copy(alpha = 0.4f)),
-                shape = RoundedCornerShape(16.dp),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 8.dp)
-            ) {
-                Row(
-                    modifier = Modifier.padding(14.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .size(36.dp)
-                            .clip(CircleShape)
-                            .background(MinimalLavenderPrimary.copy(alpha = 0.15f)),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Warning,
-                            contentDescription = null,
-                            tint = MinimalLavenderPrimary,
-                            modifier = Modifier.size(20.dp)
-                        )
-                    }
-
-                    Spacer(modifier = Modifier.width(12.dp))
-
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text(
-                            text = "Akses Notifikasi Belum Aktif",
-                            style = MaterialTheme.typography.labelLarge,
-                            fontWeight = FontWeight.SemiBold,
-                            color = MinimalTextPrimary
-                        )
-                        Text(
-                            text = "Petunjuk: Buka Pengaturan ➔ Pilih 'Famly Service' ➔ Aktifkan Sakelar Akses Notifikasi.",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MinimalTextSecondary
-                        )
-                    }
-
-                    Spacer(modifier = Modifier.width(8.dp))
-
-                    TextButton(onClick = onRequestPermission) {
-                        Text(
-                            text = "Aktifkan",
-                            style = MaterialTheme.typography.labelMedium,
-                            color = MinimalLavenderPrimary,
-                            fontWeight = FontWeight.Bold
-                        )
-                    }
-                }
-            }
-        }
+        // (Permissions are consolidated cleanly into the "Setelan - Pusat Izin Akses" menu)
 
         // Search Bar
         OutlinedTextField(

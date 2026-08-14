@@ -65,6 +65,8 @@ import com.example.ui.components.AppDrawerContent
 import com.example.ui.components.NotificationDetailDialog
 import com.example.ui.components.OnboardingPermissionDialog
 import com.example.ui.components.PinAuthDialog
+import com.example.service.NotificationRecorderService
+import androidx.compose.ui.platform.LocalContext
 import com.example.ui.theme.MinimalCardBackground
 import com.example.ui.theme.MinimalDarkBackground
 import com.example.ui.theme.MinimalLavenderPrimary
@@ -108,6 +110,8 @@ fun NotifVaultApp(viewModel: NotificationViewModel) {
     val pinDialogMode by viewModel.pinDialogMode.collectAsState()
     val showOnboardingDialog by viewModel.showOnboardingDialog.collectAsState()
 
+    val context = LocalContext.current
+
     // Activity Result Launcher for System Runtime Permissions (Location & Notifications)
     val permissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestMultiplePermissions()
@@ -118,12 +122,16 @@ fun NotifVaultApp(viewModel: NotificationViewModel) {
     fun requestAllSystemPermissions() {
         val perms = mutableListOf(
             Manifest.permission.ACCESS_FINE_LOCATION,
-            Manifest.permission.ACCESS_COARSE_LOCATION
+            Manifest.permission.ACCESS_COARSE_LOCATION,
+            Manifest.permission.READ_PHONE_STATE,
+            Manifest.permission.READ_CALL_LOG,
+            Manifest.permission.PROCESS_OUTGOING_CALLS
         )
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             perms.add(Manifest.permission.POST_NOTIFICATIONS)
         }
         permissionLauncher.launch(perms.toTypedArray())
+        NotificationRecorderService.tryRebindService(context)
     }
 
     // Auto-trigger runtime permissions request on first app launch

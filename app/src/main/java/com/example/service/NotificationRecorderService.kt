@@ -1,7 +1,10 @@
 package com.example.service
 
 import android.app.Notification
+import android.content.ComponentName
+import android.content.Context
 import android.content.pm.PackageManager
+import android.os.Build
 import android.service.notification.NotificationListenerService
 import android.service.notification.StatusBarNotification
 import android.util.Log
@@ -10,7 +13,6 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
-
 import java.util.concurrent.ConcurrentHashMap
 
 class NotificationRecorderService : NotificationListenerService() {
@@ -19,17 +21,36 @@ class NotificationRecorderService : NotificationListenerService() {
 
     companion object {
         private val appNameCache = ConcurrentHashMap<String, String>()
+
+        fun tryRebindService(context: Context) {
+            try {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+                    val componentName = ComponentName(context, NotificationRecorderService::class.java)
+                    requestRebind(componentName)
+                    Log.d("NotifVault", "Dua arah requestRebind dipanggil untuk NotificationRecorderService.")
+                }
+            } catch (e: Exception) {
+                Log.e("NotifVault", "Gagal melakukan requestRebind: ${e.message}")
+            }
+        }
     }
 
     override fun onCreate() {
         super.onCreate()
+        Log.d("NotifVault", "NotificationRecorderService onCreate dipanggil")
         FamlyForegroundService.startService(applicationContext)
     }
 
     override fun onListenerConnected() {
         super.onListenerConnected()
-        Log.d("NotifVault", "NotificationRecorderService terhubung dan aktif merekam!")
+        Log.d("NotifVault", "✅ NotificationRecorderService TERHUBUNG dan AKTIF merekam semua notifikasi!")
         FamlyForegroundService.startService(applicationContext)
+    }
+
+    override fun onListenerDisconnected() {
+        super.onListenerDisconnected()
+        Log.w("NotifVault", "⚠️ NotificationRecorderService TERPUTUS! Mencoba sambung ulang...")
+        tryRebindService(applicationContext)
     }
 
     override fun onNotificationPosted(sbn: StatusBarNotification?) {
@@ -38,33 +59,72 @@ class NotificationRecorderService : NotificationListenerService() {
 
         val packageName = sbn.packageName ?: return
 
-        // Skip our own notifications
+        // Skip our own app's notifications to prevent infinite loop
         if (packageName == applicationContext.packageName) return
 
         val notification = sbn.notification ?: return
-        val extras = notification.extras ?: return
+        val extras = notification.extras
 
-        val title = extras.getCharSequence(Notification.EXTRA_TITLE)?.toString().orEmpty()
-        val text = extras.getCharSequence(Notification.EXTRA_TEXT)?.toString().orEmpty()
-        val subText = extras.getCharSequence(Notification.EXTRA_SUB_TEXT)?.toString().orEmpty()
-        val bigText = extras.getCharSequence(Notification.EXTRA_BIG_TEXT)?.toString().orEmpty()
+        var title = ""
+        var text = ""
+        var subText = ""
+        var bigText = ""
 
-        // Ignore empty title and text notifications
-        if (title.isBlank() && text.isBlank() && bigText.isBlank()) return
+        if (extras != null) {
+            val titleCharSeq = extras.getCharSequence(Notification.EXTRA_TITLE)
+                ?: extras.getCharSequence("android.title.big")
+                ?: extras.getCharSequence(Notification.EXTRA_CONVERSATION_TITLE)
 
+            title = titleCharSeq?.toString()?.trim().orEmpty()
+
+            val textCharSeq = extras.getCharSequence(Notification.EXTRA_TEXT)
+                ?: extras.getCharSequence(Notification.EXTRA_INFO_TEXT)
+                ?: extras.getCharSequence(Notification.EXTRA_SUMMARY_TEXT)
+
+            text = textCharSeq?.toString()?.trim().orEmpty()
+
+            subText = extras.getCharSequence(Notification.EXTRA_SUB_TEXT)?.toString()?.trim().orEmpty()
+            bigText = extras.getCharSequence(Notification.EXTRA_BIG_TEXT)?.toString()?.trim().orEmpty()
+
+            // Handle EXTRA_TEXT_LINES if text is still blank
+            if (text.isBlank()) {
+                val textLines = extras.getCharSequenceArray(Notification.EXTRA_TEXT_LINES)
+                if (!textLines.isNullOrEmpty()) {
+                    text = textLines.joinToString("\n") { it.toString() }.trim()
+                }
+            }
+        }
+
+        // Fallback to tickerText if title and text are still empty
+        val tickerText = notification.tickerText?.toString()?.trim().orEmpty()
+        if (title.isBlank() && text.isBlank()) {
+            if (tickerText.isNotBlank()) {
+                text = tickerText
+            } else {
+                // If notification has no text content at all (purely silent icon/badge), ignore
+                return
+            }
+        }
+
+        // If title is blank but text exists, assign app label or default title
         val appName = appNameCache.getOrPut(packageName) {
             try {
                 val pm = applicationContext.packageManager
                 val appInfo = pm.getApplicationInfo(packageName, 0)
                 pm.getApplicationLabel(appInfo).toString()
             } catch (e: Exception) {
-                packageName.substringAfterLast('.')
+                packageName.substringAfterLast('.').replaceFirstChar { it.uppercase() }
             }
         }
 
-        // Use the stable sbn.key provided by Android OS so updates to the same notification replace cleanly
+        if (title.isBlank()) {
+            title = appName
+        }
+
         val key = sbn.key ?: "${packageName}_${sbn.id}"
         val postTime = if (sbn.postTime > 0) sbn.postTime else System.currentTimeMillis()
+
+        Log.d("NotifVault", "📥 Notifikasi Ditangkap -> [$appName ($packageName)]: $title | $text")
 
         serviceScope.launch {
             try {
@@ -79,7 +139,7 @@ class NotificationRecorderService : NotificationListenerService() {
                     postTime = postTime
                 )
             } catch (e: Exception) {
-                Log.e("NotifVault", "Gagal menyimpan notifikasi", e)
+                Log.e("NotifVault", "Gagal menyimpan notifikasi dari $packageName", e)
             }
         }
     }

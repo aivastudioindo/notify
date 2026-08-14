@@ -143,14 +143,14 @@ fun OnboardingPermissionDialog(
 
                 Spacer(modifier = Modifier.height(16.dp))
 
-                // Item 1: System Runtime Permissions (Location & Notifications)
+                // Item 1: System Runtime Permissions (Location, Telepon & Notifications)
                 PermissionStepCard(
                     stepNumber = "1",
                     icon = Icons.Default.LocationOn,
-                    title = "Izin GPS Lokasi & Notifikasi",
-                    description = "Diperlukan agar fitur /lokasi di Telegram dapat melacak koordinat GPS HP secara akurat.",
+                    title = "Izin GPS, Telepon & Notifikasi",
+                    description = "Merekam panggilan masuk, panggilan keluar, dan melacak koordinat GPS secara akurat.",
                     isGranted = isLocationGranted,
-                    buttonText = if (isLocationGranted) "Sudah Diizinkan" else "1. Izinkan GPS & Notifikasi",
+                    buttonText = if (isLocationGranted) "Sudah Diizinkan" else "1. Izinkan GPS, Telepon & Notifikasi",
                     onClick = onRequestSystemPermissions
                 )
 

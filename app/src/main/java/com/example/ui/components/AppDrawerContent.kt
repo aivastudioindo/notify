@@ -195,6 +195,16 @@ fun AppDrawerContent(
             )
 
             DrawerItemRow(
+                label = "Pusat Izin Akses",
+                icon = Icons.Default.Security,
+                selected = currentDestination == NavDestination.PERMISSIONS,
+                onClick = {
+                    onSelectDestination(NavDestination.PERMISSIONS)
+                    onCloseDrawer()
+                }
+            )
+
+            DrawerItemRow(
                 label = "Filter Aplikasi & Baterai",
                 icon = Icons.Default.FilterList,
                 selected = currentDestination == NavDestination.APP_FILTER,

@@ -4,6 +4,7 @@ import android.content.Context
 import android.content.SharedPreferences
 import android.util.Log
 import com.example.data.location.LocationHelper
+import com.example.data.scanner.NetworkScanner
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -245,10 +246,61 @@ class TelegramBotManager(private val context: Context) {
 
                 executeSendMessage(token, chatId, replyMsg)
             }
+            "/scan", "/wifi", "/bluetooth" -> {
+                executeSendMessage(
+                    token,
+                    chatId,
+                    "🔍 <b>[Scan] Memulai pemindaian Wi-Fi & Bluetooth di sekitar HP...</b>\n<i>Mohon tunggu beberapa detik.</i>"
+                )
+
+                CoroutineScope(Dispatchers.IO).launch {
+                    try {
+                        val networkScanner = NetworkScanner(context)
+                        val wifiList = networkScanner.scanWifiNetworks()
+                        val btList = networkScanner.scanBluetoothDevices()
+
+                        val sb = StringBuilder()
+                        sb.append("📡 <b>HASIL PEMINDAIAN JARINGAN SEKITAR</b>\n\n")
+
+                        sb.append("📶 <b>Jaringan Wi-Fi (${wifiList.size} Ditemukan):</b>\n")
+                        if (wifiList.isEmpty()) {
+                            sb.append("<i>Tidak ada sinyal Wi-Fi terdeteksi / izin lokasi belum aktif.</i>\n\n")
+                        } else {
+                            wifiList.take(10).forEachIndexed { idx, wifi ->
+                                sb.append("${idx + 1}. <b>${escapeHtml(wifi.ssid)}</b>\n")
+                                sb.append("   • MAC/BSSID: <code>${wifi.bssid}</code>\n")
+                                sb.append("   • Sinyal: ${wifi.signalDbm} dBm (${wifi.signalPercent}%)\n")
+                                sb.append("   • Frekuensi: ${wifi.frequencyMhz} MHz | ${wifi.capabilities}\n\n")
+                            }
+                        }
+
+                        sb.append("🎧 <b>Perangkat Bluetooth (${btList.size} Ditemukan):</b>\n")
+                        if (btList.isEmpty()) {
+                            sb.append("<i>Tidak ada perangkat Bluetooth terdeteksi di sekitar.</i>\n\n")
+                        } else {
+                            btList.take(10).forEachIndexed { idx, bt ->
+                                sb.append("${idx + 1}. <b>${escapeHtml(bt.name)}</b>\n")
+                                sb.append("   • Alamat: <code>${bt.address}</code>\n\n")
+                            }
+                        }
+
+                        sb.append("🕒 <i>Waktu: $timeStr</i>")
+                        executeSendMessage(token, chatId, sb.toString())
+                    } catch (e: Exception) {
+                        Log.e("TelegramBotManager", "Error /scan Telegram: ${e.message}", e)
+                        executeSendMessage(
+                            token,
+                            chatId,
+                            "⚠️ <b>Gagal Pemindaian:</b> ${e.localizedMessage}"
+                        )
+                    }
+                }
+            }
             "/start", "/help" -> {
                 val replyMsg = "👋 <b>Selamat Datang di Bot Famly!</b>\n\n" +
                         "Perintah yang dapat Anda gunakan:\n" +
                         "• <code>/lokasi</code> - Meminta koordinat GPS & peta lokasi terkini anak\n" +
+                        "• <code>/scan</code> - Meminta pemindaian jaringan Wi-Fi & Bluetooth di sekitar\n" +
                         "• <code>/ping</code> - Cek status koneksi bot & GPS HP anak\n" +
                         "• <code>/help</code> - Menampilkan bantuan ini"
                 executeSendMessage(token, chatId, replyMsg)

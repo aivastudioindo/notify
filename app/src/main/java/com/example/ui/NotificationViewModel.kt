@@ -25,6 +25,7 @@ import kotlinx.coroutines.launch
 enum class NavDestination(val title: String) {
     ALL_NOTIFICATIONS("Semua Notifikasi"),
     CATEGORIES("Kategori & Statistik"),
+    PERMISSIONS("Pusat Izin Akses"),
     APP_FILTER("Filter Aplikasi"),
     TELEGRAM("Bot Telegram"),
     LOCATION("Lokasi & GPS"),

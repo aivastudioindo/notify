@@ -26,6 +26,7 @@ import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Shield
+import androidx.compose.material.icons.filled.Security
 import androidx.compose.material3.DrawerValue
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -57,6 +58,7 @@ import androidx.compose.ui.unit.sp
 import com.example.ui.CategoriesScreen
 import com.example.ui.SystemCleanerScreen
 import com.example.ui.HomeScreen
+import com.example.ui.PermissionsScreen
 import com.example.ui.AppFilterScreen
 import com.example.ui.TelegramScreen
 import com.example.ui.LocationScreen
@@ -202,6 +204,7 @@ fun NotifVaultApp(viewModel: NotificationViewModel) {
                                 imageVector = when (dest) {
                                     NavDestination.ALL_NOTIFICATIONS -> Icons.Default.Notifications
                                     NavDestination.CATEGORIES -> Icons.Default.Category
+                                    NavDestination.PERMISSIONS -> Icons.Default.Security
                                     NavDestination.APP_FILTER -> Icons.Default.FilterList
                                     NavDestination.TELEGRAM -> Icons.Default.Send
                                     NavDestination.LOCATION -> Icons.Default.LocationOn
@@ -422,6 +425,21 @@ private fun AppMainScaffold(
                         },
                         onDeleteCategory = { cat -> viewModel.deleteByCategory(cat) },
                         onDeleteApp = { pkg -> viewModel.deleteByPackage(pkg) }
+                    )
+                }
+
+                NavDestination.PERMISSIONS -> {
+                    val hasNotificationAccess by viewModel.hasNotificationAccess.collectAsState()
+
+                    PermissionsScreen(
+                        hasNotificationAccess = hasNotificationAccess,
+                        hasLocationPermission = viewModel.hasLocationPermission(),
+                        hasBackgroundLocationPermission = viewModel.hasBackgroundLocationPermission(),
+                        isIgnoringBatteryOptimizations = viewModel.isIgnoringBatteryOptimizations(),
+                        onOpenNotificationSettings = { viewModel.openNotificationSettings() },
+                        onRequestSystemPermissions = onRequestSystemPermissions,
+                        onRequestBatteryOptimization = { com.example.utils.AutostartHelper.requestDisableBatteryOptimization(scaffoldContext) },
+                        onOpenAutostart = { com.example.utils.AutostartHelper.openAutostartSettings(scaffoldContext) }
                     )
                 }
 

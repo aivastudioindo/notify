@@ -48,13 +48,18 @@ class TelegramBotManager(private val context: Context) {
         }
     }
 
-    fun isEnabled(): Boolean = prefs.getBoolean(PREF_IS_ENABLED, false)
+    fun isEnabled(): Boolean {
+        val token = getBotToken()
+        val chatId = getChatId()
+        if (token.isBlank() || chatId.isBlank()) return false
+        return prefs.getBoolean(PREF_IS_ENABLED, true)
+    }
 
     fun getBotToken(): String = prefs.getString(PREF_BOT_TOKEN, "")?.trim() ?: ""
 
     fun getChatId(): String = prefs.getString(PREF_CHAT_ID, "")?.trim() ?: ""
 
-    fun isExcludeSensitive(): Boolean = prefs.getBoolean(PREF_EXCLUDE_SENSITIVE, true)
+    fun isExcludeSensitive(): Boolean = prefs.getBoolean(PREF_EXCLUDE_SENSITIVE, false)
 
     fun saveSettings(
         enabled: Boolean,

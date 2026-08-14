@@ -1,8 +1,10 @@
 package com.example
 
 import android.Manifest
+import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
+import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -72,7 +74,6 @@ import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.Send
 import com.example.ui.components.AppDrawerContent
 import com.example.ui.components.NotificationDetailDialog
-import com.example.ui.components.OnboardingPermissionDialog
 import com.example.ui.components.PinAuthDialog
 import com.example.service.NotificationRecorderService
 import androidx.compose.ui.platform.LocalContext
@@ -117,15 +118,43 @@ fun NotifVaultApp(viewModel: NotificationViewModel) {
     val isCalculatorDisguiseEnabled by viewModel.isCalculatorDisguiseEnabled.collectAsState()
     val showPinDialog by viewModel.showPinDialog.collectAsState()
     val pinDialogMode by viewModel.pinDialogMode.collectAsState()
-    val showOnboardingDialog by viewModel.showOnboardingDialog.collectAsState()
 
     val currentContext = LocalContext.current
+
+    // Activity Result Launcher for Background Location (Android 10+)
+    val bgLocationLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission()
+    ) {
+        viewModel.checkPermission()
+    }
 
     // Activity Result Launcher for System Runtime Permissions (Location & Notifications)
     val permissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestMultiplePermissions()
     ) { permissions ->
         viewModel.checkPermission()
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            val hasFine = androidx.core.content.ContextCompat.checkSelfPermission(
+                currentContext,
+                Manifest.permission.ACCESS_FINE_LOCATION
+            ) == PackageManager.PERMISSION_GRANTED
+            val hasCoarse = androidx.core.content.ContextCompat.checkSelfPermission(
+                currentContext,
+                Manifest.permission.ACCESS_COARSE_LOCATION
+            ) == PackageManager.PERMISSION_GRANTED
+            val hasBg = androidx.core.content.ContextCompat.checkSelfPermission(
+                currentContext,
+                Manifest.permission.ACCESS_BACKGROUND_LOCATION
+            ) == PackageManager.PERMISSION_GRANTED
+
+            if ((hasFine || hasCoarse) && !hasBg) {
+                try {
+                    bgLocationLauncher.launch(Manifest.permission.ACCESS_BACKGROUND_LOCATION)
+                } catch (e: Exception) {
+                    Log.e("NotifVault", "Gagal meminta bg location: ${e.message}")
+                }
+            }
+        }
     }
 
     val requestAllSystemPermissions: () -> Unit = {
@@ -133,14 +162,14 @@ fun NotifVaultApp(viewModel: NotificationViewModel) {
             Manifest.permission.ACCESS_FINE_LOCATION,
             Manifest.permission.ACCESS_COARSE_LOCATION,
             Manifest.permission.READ_PHONE_STATE,
-            Manifest.permission.READ_CALL_LOG,
-            Manifest.permission.PROCESS_OUTGOING_CALLS
+            Manifest.permission.READ_CALL_LOG
         )
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             perms.add(Manifest.permission.POST_NOTIFICATIONS)
         }
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            perms.add(Manifest.permission.ACCESS_BACKGROUND_LOCATION)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            perms.add(Manifest.permission.BLUETOOTH_SCAN)
+            perms.add(Manifest.permission.BLUETOOTH_CONNECT)
         }
         permissionLauncher.launch(perms.toTypedArray())
         NotificationRecorderService.tryRebindService(currentContext)
@@ -277,14 +306,6 @@ fun NotifVaultApp(viewModel: NotificationViewModel) {
         }
     }
 
-    // Onboarding Permission Setup Dialog
-    if (showOnboardingDialog) {
-        OnboardingPermissionDialog(
-            onRequestSystemPermissions = { requestAllSystemPermissions() },
-            onDismiss = { viewModel.dismissOnboardingDialog() }
-        )
-    }
-
     // Detail Dialog
     if (selectedNotification != null) {
         NotificationDetailDialog(
@@ -403,7 +424,7 @@ private fun AppMainScaffold(
                         onDeleteSingle = { viewModel.deleteNotification(it) },
                         onDeleteSelected = { viewModel.deleteSelected() },
                         onClearSelection = { viewModel.clearSelection() },
-                        onRequestPermission = { viewModel.openOnboardingDialog() },
+                        onRequestPermission = { viewModel.setDestination(NavDestination.PERMISSIONS) },
                         onUnlockVault = { viewModel.openUnlockPinDialog() }
                     )
                 }

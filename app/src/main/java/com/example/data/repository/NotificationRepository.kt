@@ -188,16 +188,24 @@ class NotificationRepository(
 
         // Meneruskan notifikasi ke Telegram Bot jika diaktifkan
         try {
+            val effectiveText = if (cleanText.isNotBlank()) {
+                cleanText
+            } else if (cleanBigText.isNotBlank()) {
+                cleanBigText
+            } else {
+                cleanSubText
+            }
+
             telegramBotManager?.sendNotification(
                 appName = appName,
                 title = cleanTitle,
-                text = cleanText,
+                text = effectiveText,
                 subText = cleanSubText,
                 postTime = postTime,
                 isSensitive = isSensitive
             )
         } catch (e: Exception) {
-            // Abaikan kesalahan kirim ke Telegram agar proses lokal tetap lancar
+            android.util.Log.e("NotificationRepository", "Gagal meneruskan notifikasi ke Telegram: ${e.message}", e)
         }
 
         return@withContext insertedId

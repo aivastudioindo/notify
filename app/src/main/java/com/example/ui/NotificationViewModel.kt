@@ -186,7 +186,6 @@ class NotificationViewModel(application: Application) : AndroidViewModel(applica
 
     init {
         checkPermission()
-        checkFirstLaunchOnboarding()
         if (encryptionManager.isPinProtectionEnabled()) {
             _isVaultUnlocked.value = false
             _showPinDialog.value = true
@@ -205,18 +204,14 @@ class NotificationViewModel(application: Application) : AndroidViewModel(applica
     }
 
     private fun checkFirstLaunchOnboarding() {
-        val isFirstLaunch = prefs.getBoolean("is_first_launch_done", false)
-        if (!isFirstLaunch || !_hasNotificationAccess.value) {
-            _showOnboardingDialog.value = true
-        }
+        // Consolidated into Pusat Izin Akses Screen
     }
 
     fun openOnboardingDialog() {
-        _showOnboardingDialog.value = true
+        setDestination(NavDestination.PERMISSIONS)
     }
 
     fun dismissOnboardingDialog() {
-        prefs.edit().putBoolean("is_first_launch_done", true).apply()
         _showOnboardingDialog.value = false
     }
 

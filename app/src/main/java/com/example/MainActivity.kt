@@ -57,6 +57,7 @@ import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.ui.DisclaimerScreen
 import com.example.ui.CategoriesScreen
 import com.example.ui.SystemCleanerScreen
 import com.example.ui.HomeScreen
@@ -69,7 +70,9 @@ import com.example.ui.NavDestination
 import com.example.ui.NotificationViewModel
 import com.example.ui.PinDialogMode
 import com.example.ui.SettingsScreen
+import androidx.compose.material.icons.filled.CleaningServices
 import androidx.compose.material.icons.filled.FilterList
+import androidx.compose.material.icons.filled.Gavel
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.Send
 import com.example.ui.components.AppDrawerContent
@@ -234,11 +237,12 @@ fun NotifVaultApp(viewModel: NotificationViewModel) {
                                     NavDestination.ALL_NOTIFICATIONS -> Icons.Default.Notifications
                                     NavDestination.CATEGORIES -> Icons.Default.Category
                                     NavDestination.PERMISSIONS -> Icons.Default.Security
-                                    NavDestination.APP_FILTER -> Icons.Default.FilterList
                                     NavDestination.TELEGRAM -> Icons.Default.Send
                                     NavDestination.LOCATION -> Icons.Default.LocationOn
+                                    NavDestination.SYSTEM_CLEANER -> Icons.Default.CleaningServices
                                     NavDestination.SECURITY -> Icons.Default.Lock
                                     NavDestination.SETTINGS -> Icons.Default.Settings
+                                    NavDestination.DISCLAIMER -> Icons.Default.Gavel
                                 },
                                 contentDescription = dest.title
                             )
@@ -464,24 +468,8 @@ private fun AppMainScaffold(
                     )
                 }
 
-                NavDestination.APP_FILTER -> {
-                    val filterMode by viewModel.filterMode.collectAsState()
-                    val blacklist by viewModel.blacklist.collectAsState()
-                    val whitelist by viewModel.whitelist.collectAsState()
-
-                    AppFilterScreen(
-                        filterMode = filterMode,
-                        blacklist = blacklist,
-                        whitelist = whitelist,
-                        onSetFilterMode = { mode -> viewModel.setFilterMode(mode) },
-                        onAddToBlacklist = { pkg -> viewModel.addToBlacklist(pkg) },
-                        onRemoveFromBlacklist = { pkg -> viewModel.removeFromBlacklist(pkg) },
-                        onAddToWhitelist = { pkg -> viewModel.addToWhitelist(pkg) },
-                        onRemoveFromWhitelist = { pkg -> viewModel.removeFromWhitelist(pkg) },
-                        onResetFilterDefaults = { viewModel.resetFilterDefaults() },
-                        onGetInstalledApps = { viewModel.getInstalledApps() },
-                        onGetAppName = { pkg -> viewModel.getAppNameForPackage(pkg) }
-                    )
+                NavDestination.DISCLAIMER -> {
+                    DisclaimerScreen()
                 }
 
                 NavDestination.TELEGRAM -> {
@@ -518,6 +506,12 @@ private fun AppMainScaffold(
                         isFetchingLocation = isFetchingLocation,
                         onTestLocation = { onResult -> viewModel.testCurrentLocation(onResult) },
                         onSendLocationToTelegram = { onResult -> viewModel.sendLocationToTelegram(onResult) }
+                    )
+                }
+
+                NavDestination.SYSTEM_CLEANER -> {
+                    SystemCleanerScreen(
+                        onUnlockWithPin = { pin -> viewModel.unlockVault(pin) }
                     )
                 }
 

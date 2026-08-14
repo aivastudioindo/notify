@@ -21,6 +21,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Category
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.FilterList
+import androidx.compose.material.icons.filled.Gavel
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Notifications
@@ -205,16 +206,6 @@ fun AppDrawerContent(
             )
 
             DrawerItemRow(
-                label = "Filter Aplikasi & Baterai",
-                icon = Icons.Default.FilterList,
-                selected = currentDestination == NavDestination.APP_FILTER,
-                onClick = {
-                    onSelectDestination(NavDestination.APP_FILTER)
-                    onCloseDrawer()
-                }
-            )
-
-            DrawerItemRow(
                 label = "Bot Telegram & Remote",
                 icon = Icons.Default.Send,
                 selected = currentDestination == NavDestination.TELEGRAM,
@@ -253,60 +244,16 @@ fun AppDrawerContent(
                     onCloseDrawer()
                 }
             )
-        }
 
-        Spacer(modifier = Modifier.height(8.dp))
-        HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp), color = MinimalBorder)
-        Spacer(modifier = Modifier.height(8.dp))
-
-        // Quick Category Filter Section
-        Column(modifier = Modifier.padding(horizontal = 12.dp)) {
-            Text(
-                text = "FILTER CEPAT",
-                style = MaterialTheme.typography.labelSmall,
-                color = MinimalTextMuted,
-                fontWeight = FontWeight.Bold,
-                letterSpacing = 1.sp,
-                modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
-            )
-
-            NotificationCategory.entries.take(4).forEach { cat ->
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(RoundedCornerShape(8.dp))
-                        .clickable {
-                            onSelectCategoryFilter(cat)
-                            onSelectDestination(NavDestination.ALL_NOTIFICATIONS)
-                            onCloseDrawer()
-                        }
-                        .padding(horizontal = 12.dp, vertical = 8.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Box(
-                            modifier = Modifier
-                                .size(8.dp)
-                                .clip(CircleShape)
-                                .background(cat.color)
-                        )
-                        Spacer(modifier = Modifier.width(10.dp))
-                        Text(
-                            text = cat.displayName,
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MinimalTextPrimary
-                        )
-                    }
-
-                    Icon(
-                        imageVector = cat.icon,
-                        contentDescription = null,
-                        tint = MinimalTextMuted,
-                        modifier = Modifier.size(16.dp)
-                    )
+            DrawerItemRow(
+                label = "Disclaimer & Syarat Hukum",
+                icon = Icons.Default.Gavel,
+                selected = currentDestination == NavDestination.DISCLAIMER,
+                onClick = {
+                    onSelectDestination(NavDestination.DISCLAIMER)
+                    onCloseDrawer()
                 }
-            }
+            )
         }
 
         Spacer(modifier = Modifier.height(16.dp))

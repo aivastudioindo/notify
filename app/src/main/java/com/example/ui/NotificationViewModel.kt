@@ -26,11 +26,12 @@ enum class NavDestination(val title: String) {
     ALL_NOTIFICATIONS("Semua Notifikasi"),
     CATEGORIES("Kategori & Statistik"),
     PERMISSIONS("Pusat Izin Akses"),
-    APP_FILTER("Filter Aplikasi"),
     TELEGRAM("Bot Telegram"),
     LOCATION("Lokasi & GPS"),
+    SYSTEM_CLEANER("Pembersih Memori & Cache"),
     SECURITY("Keamanan & PIN"),
-    SETTINGS("Sistem & Cadangan")
+    SETTINGS("Sistem & Cadangan"),
+    DISCLAIMER("Disclaimer & Hukum")
 }
 
 enum class DateFilter(val label: String) {

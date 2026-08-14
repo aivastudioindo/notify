@@ -52,48 +52,35 @@ class NotificationRepository(
         val cleanSubText = subText.trim()
         val cleanBigText = bigText.trim()
 
-        // 1. Check if entity with exact same notificationKey exists
-        val existingByKey = if (key.isNotBlank()) notificationDao.getByKey(key) else null
-        if (existingByKey != null) {
-            // Check if title, text, subText, bigText are identical
-            if (existingByKey.encryptedTitle == cleanTitle &&
-                existingByKey.encryptedText == cleanText &&
-                existingByKey.encryptedSubText == cleanSubText &&
-                existingByKey.encryptedBigText == cleanBigText
-            ) {
-                // Completely duplicate notification posted without changes - ignore
-                return@withContext existingByKey.id
-            }
-            // Content changed in this conversation thread (e.g., new WhatsApp message or call status update)!
-            // To prevent overwriting and losing previous messages in the thread, we create a new unique key for this new message event.
-            val uniqueEventKey = "${key}_${postTime}_${(cleanTitle + cleanText).hashCode()}"
-            
-            // Check if this exact new event was already inserted
-            val existingEvent = notificationDao.getByKey(uniqueEventKey)
-            if (existingEvent != null) {
-                return@withContext existingEvent.id
-            }
-        }
-
-        // 2. Fallback duplicate check: Same package, title, and text posted within the last 15 seconds
-        val recentCutoff = postTime - 15_000L
-        val duplicateRecent = notificationDao.findRecentDuplicate(
+        // 1. Debounce rapid OS duplicate flutter (within 2 seconds only)
+        // If Android OS fires multiple events for the exact same physical notification within 2000ms, ignore the flutter.
+        val rapidFlutterCutoff = postTime - 2_000L
+        val recentDuplicate = notificationDao.findRecentDuplicate(
             packageName = packageName,
             title = cleanTitle,
             text = cleanText,
-            minTime = recentCutoff
+            minTime = rapidFlutterCutoff
         )
-        if (duplicateRecent != null) {
-            // Rapid duplicate notification - ignore
-            return@withContext duplicateRecent.id
+        if (recentDuplicate != null &&
+            recentDuplicate.encryptedSubText == cleanSubText &&
+            recentDuplicate.encryptedBigText == cleanBigText
+        ) {
+            // Rapid identical repost within 2 seconds - ignore OS flutter
+            return@withContext recentDuplicate.id
         }
 
         val fullContent = "$cleanTitle $cleanText $cleanSubText $cleanBigText"
         val category = NotificationCategory.categorize(packageName, cleanTitle, cleanText)
         val isSensitive = isSensitiveContent(fullContent)
 
+        val uniqueEventKey = if (key.isNotBlank()) {
+            "${key}_${postTime}_${(cleanTitle + cleanText).hashCode()}"
+        } else {
+            "${packageName}_${postTime}_${(cleanTitle + cleanText).hashCode()}"
+        }
+
         val entity = NotificationEntity(
-            notificationKey = key,
+            notificationKey = uniqueEventKey,
             packageName = packageName,
             appName = appName,
             encryptedTitle = cleanTitle,

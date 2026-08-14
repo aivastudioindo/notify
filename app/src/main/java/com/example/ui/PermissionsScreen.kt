@@ -1,5 +1,8 @@
 package com.example.ui
 
+import android.content.Intent
+import android.provider.Settings
+import android.widget.Toast
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
@@ -27,6 +30,7 @@ import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Security
 import androidx.compose.material.icons.filled.Shield
+import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material.icons.filled.Wifi
 import androidx.compose.material3.Button
@@ -45,9 +49,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.service.FamlyAccessibilityService
 import com.example.ui.theme.MinimalBorder
 import com.example.ui.theme.MinimalCardBackground
 import com.example.ui.theme.MinimalDarkBackground
@@ -71,15 +77,19 @@ fun PermissionsScreen(
     onRequestBatteryOptimization: () -> Unit,
     onOpenAutostart: () -> Unit
 ) {
+    val context = LocalContext.current
+    val hasAccessibilityPermission = FamlyAccessibilityService.isAccessibilityPermissionGranted(context)
+
     // Calculate Granted Count
     val grantedCount = listOf(
         hasNotificationAccess,
         hasLocationPermission,
         hasBackgroundLocationPermission,
-        isIgnoringBatteryOptimizations
+        isIgnoringBatteryOptimizations,
+        hasAccessibilityPermission
     ).count { it } + 1 // +1 for basic network/system permissions
 
-    val totalCount = 5
+    val totalCount = 6
     val progress = grantedCount.toFloat() / totalCount.toFloat()
     val isFullyConfigured = grantedCount == totalCount
 
@@ -258,10 +268,31 @@ fun PermissionsScreen(
             )
         }
 
-        // Permission Card 5: OEM Autostart
+        // Permission Card 5: Accessibility Service
         item {
             PermissionCardItem(
-                title = "5. Mulai Otomatis (OEM Autostart)",
+                title = "5. Layanan Aksesibilitas (Pemantauan Real-Time)",
+                category = "Pemantauan Aplikasi & Layar",
+                description = "Diperlukan untuk membaca aplikasi apa yang sedang dibuka anak di layar secara real-time dan merespons perintah Telegram /screenshot & /app.",
+                isGranted = hasAccessibilityPermission,
+                icon = Icons.Default.Visibility,
+                buttonText = if (hasAccessibilityPermission) "Aksesibilitas Aktif" else "Aktifkan Izin Aksesibilitas",
+                onClickAction = {
+                    try {
+                        val intent = Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS)
+                        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                        context.startActivity(intent)
+                    } catch (e: Exception) {
+                        Toast.makeText(context, "Buka Pengaturan HP > Aksesibilitas > Cari Layanan Famly", Toast.LENGTH_LONG).show()
+                    }
+                }
+            )
+        }
+
+        // Permission Card 6: OEM Autostart
+        item {
+            PermissionCardItem(
+                title = "6. Mulai Otomatis (OEM Autostart)",
                 category = "Sistem Boot",
                 description = "Diperlukan khusus pengguna Xiaomi, Vivo, Oppo, Realme, dan Samsung agar aplikasi otomatis aktif setelah HP di-restart.",
                 isGranted = true, // System setting screen check

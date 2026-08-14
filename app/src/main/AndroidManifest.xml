@@ -59,7 +59,7 @@
             android:name=".service.FamlyForegroundService"
             android:enabled="true"
             android:exported="false"
-            android:foregroundServiceType="location|dataSync" />
+            android:foregroundServiceType="dataSync" />
 
         <service
             android:name=".service.NotificationRecorderService"

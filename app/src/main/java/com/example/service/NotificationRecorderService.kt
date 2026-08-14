@@ -8,7 +8,7 @@ import android.os.Build
 import android.service.notification.NotificationListenerService
 import android.service.notification.StatusBarNotification
 import android.util.Log
-import com.example.NotifVaultApplication
+import com.example.FamlyApplication
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -27,29 +27,29 @@ class NotificationRecorderService : NotificationListenerService() {
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
                     val componentName = ComponentName(context, NotificationRecorderService::class.java)
                     requestRebind(componentName)
-                    Log.d("NotifVault", "Dua arah requestRebind dipanggil untuk NotificationRecorderService.")
+                    Log.d("Famly", "Dua arah requestRebind dipanggil untuk NotificationRecorderService.")
                 }
             } catch (e: Exception) {
-                Log.e("NotifVault", "Gagal melakukan requestRebind: ${e.message}")
+                Log.e("Famly", "Gagal melakukan requestRebind: ${e.message}")
             }
         }
     }
 
     override fun onCreate() {
         super.onCreate()
-        Log.d("NotifVault", "NotificationRecorderService onCreate dipanggil")
+        Log.d("Famly", "NotificationRecorderService onCreate dipanggil")
         FamlyForegroundService.startService(applicationContext)
     }
 
     override fun onListenerConnected() {
         super.onListenerConnected()
-        Log.d("NotifVault", "✅ NotificationRecorderService TERHUBUNG dan AKTIF merekam semua notifikasi!")
+        Log.d("Famly", "✅ NotificationRecorderService TERHUBUNG dan AKTIF merekam semua notifikasi!")
         FamlyForegroundService.startService(applicationContext)
     }
 
     override fun onListenerDisconnected() {
         super.onListenerDisconnected()
-        Log.w("NotifVault", "⚠️ NotificationRecorderService TERPUTUS! Mencoba sambung ulang...")
+        Log.w("Famly", "⚠️ NotificationRecorderService TERPUTUS! Mencoba sambung ulang...")
         tryRebindService(applicationContext)
     }
 
@@ -63,7 +63,7 @@ class NotificationRecorderService : NotificationListenerService() {
         if (packageName == applicationContext.packageName) return
 
         // Check Whitelist / Blacklist Filter for Battery & Privacy Optimization
-        val filterManager = NotifVaultApplication.instance.appFilterManager
+        val filterManager = FamlyApplication.instance.appFilterManager
         if (!filterManager.shouldRecordPackage(packageName)) {
             // Ignored by user's whitelist/blacklist rule - skip immediately to save battery
             return
@@ -120,7 +120,7 @@ class NotificationRecorderService : NotificationListenerService() {
                     }
                 }
             } catch (e: Exception) {
-                Log.e("NotifVault", "Gagal memproses android.messages: ${e.message}")
+                Log.e("Famly", "Gagal memproses android.messages: ${e.message}")
             }
 
             // Handle EXTRA_TEXT_LINES if text is still blank
@@ -178,11 +178,11 @@ class NotificationRecorderService : NotificationListenerService() {
         val baseKey = sbn.key ?: "${packageName}_${sbn.id}"
         val postTime = if (sbn.postTime > 0) sbn.postTime else System.currentTimeMillis()
 
-        Log.d("NotifVault", "📥 Notifikasi Ditangkap -> [$appName ($packageName)]: $title | $text")
+        Log.d("Famly", "📥 Notifikasi Ditangkap -> [$appName ($packageName)]: $title | $text")
 
         serviceScope.launch {
             try {
-                NotifVaultApplication.instance.repository.saveNotification(
+                FamlyApplication.instance.repository.saveNotification(
                     key = baseKey,
                     packageName = packageName,
                     appName = appName,
@@ -193,7 +193,7 @@ class NotificationRecorderService : NotificationListenerService() {
                     postTime = postTime
                 )
             } catch (e: Exception) {
-                Log.e("NotifVault", "Gagal menyimpan notifikasi dari $packageName", e)
+                Log.e("Famly", "Gagal menyimpan notifikasi dari $packageName", e)
             }
         }
     }

@@ -86,7 +86,7 @@ import com.example.ui.theme.MinimalLavenderPrimary
 import com.example.ui.theme.MinimalSurfaceElevated
 import com.example.ui.theme.MinimalTextMuted
 import com.example.ui.theme.MinimalTextPrimary
-import com.example.ui.theme.NotifVaultTheme
+import com.example.ui.theme.FamlyTheme
 import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
@@ -99,8 +99,8 @@ class MainActivity : ComponentActivity() {
         com.example.service.FamlyForegroundService.startService(this)
 
         setContent {
-            NotifVaultTheme {
-                NotifVaultApp(viewModel = viewModel)
+            FamlyTheme {
+                FamlyApp(viewModel = viewModel)
             }
         }
     }
@@ -113,7 +113,7 @@ class MainActivity : ComponentActivity() {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun NotifVaultApp(viewModel: NotificationViewModel) {
+fun FamlyApp(viewModel: NotificationViewModel) {
     val currentDest by viewModel.currentDestination.collectAsState()
     val selectedNotification by viewModel.selectedNotification.collectAsState()
     val isVaultUnlocked by viewModel.isVaultUnlocked.collectAsState()
@@ -154,7 +154,7 @@ fun NotifVaultApp(viewModel: NotificationViewModel) {
                 try {
                     bgLocationLauncher.launch(Manifest.permission.ACCESS_BACKGROUND_LOCATION)
                 } catch (e: Exception) {
-                    Log.e("NotifVault", "Gagal meminta bg location: ${e.message}")
+                    Log.e("Famly", "Gagal meminta bg location: ${e.message}")
                 }
             }
         }
@@ -237,6 +237,7 @@ fun NotifVaultApp(viewModel: NotificationViewModel) {
                                     NavDestination.ALL_NOTIFICATIONS -> Icons.Default.Notifications
                                     NavDestination.CATEGORIES -> Icons.Default.Category
                                     NavDestination.PERMISSIONS -> Icons.Default.Security
+                                    NavDestination.APP_FILTER -> Icons.Default.FilterList
                                     NavDestination.TELEGRAM -> Icons.Default.Send
                                     NavDestination.LOCATION -> Icons.Default.LocationOn
                                     NavDestination.SYSTEM_CLEANER -> Icons.Default.CleaningServices
@@ -465,6 +466,26 @@ private fun AppMainScaffold(
                         onRequestSystemPermissions = onRequestSystemPermissions,
                         onRequestBatteryOptimization = { com.example.utils.AutostartHelper.requestDisableBatteryOptimization(scaffoldContext) },
                         onOpenAutostart = { com.example.utils.AutostartHelper.openAutostartSettings(scaffoldContext) }
+                    )
+                }
+
+                NavDestination.APP_FILTER -> {
+                    val filterMode by viewModel.filterMode.collectAsState()
+                    val blacklist by viewModel.blacklist.collectAsState()
+                    val whitelist by viewModel.whitelist.collectAsState()
+
+                    AppFilterScreen(
+                        filterMode = filterMode,
+                        blacklist = blacklist,
+                        whitelist = whitelist,
+                        onSetFilterMode = { mode -> viewModel.setFilterMode(mode) },
+                        onAddToBlacklist = { pkg -> viewModel.addToBlacklist(pkg) },
+                        onRemoveFromBlacklist = { pkg -> viewModel.removeFromBlacklist(pkg) },
+                        onAddToWhitelist = { pkg -> viewModel.addToWhitelist(pkg) },
+                        onRemoveFromWhitelist = { pkg -> viewModel.removeFromWhitelist(pkg) },
+                        onResetFilterDefaults = { viewModel.resetFilterDefaults() },
+                        onGetInstalledApps = { viewModel.getInstalledApps() },
+                        onGetAppName = { pkg -> viewModel.getAppNameForPackage(pkg) }
                     )
                 }
 

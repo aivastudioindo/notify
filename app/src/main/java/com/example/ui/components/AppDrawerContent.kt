@@ -206,6 +206,16 @@ fun AppDrawerContent(
             )
 
             DrawerItemRow(
+                label = "Whitelist & Blacklist Aplikasi",
+                icon = Icons.Default.FilterList,
+                selected = currentDestination == NavDestination.APP_FILTER,
+                onClick = {
+                    onSelectDestination(NavDestination.APP_FILTER)
+                    onCloseDrawer()
+                }
+            )
+
+            DrawerItemRow(
                 label = "Bot Telegram & Remote",
                 icon = Icons.Default.Send,
                 selected = currentDestination == NavDestination.TELEGRAM,

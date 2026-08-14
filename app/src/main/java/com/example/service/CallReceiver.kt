@@ -5,7 +5,7 @@ import android.content.Context
 import android.content.Intent
 import android.telephony.TelephonyManager
 import android.util.Log
-import com.example.NotifVaultApplication
+import com.example.FamlyApplication
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -146,7 +146,7 @@ class CallReceiver : BroadcastReceiver() {
 
         CoroutineScope(Dispatchers.IO).launch {
             try {
-                NotifVaultApplication.instance.repository.saveNotification(
+                FamlyApplication.instance.repository.saveNotification(
                     key = key,
                     packageName = packageName,
                     appName = appName,

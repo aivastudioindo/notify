@@ -4,7 +4,7 @@ import android.app.Application
 import android.content.Context
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.NotifVaultApplication
+import com.example.FamlyApplication
 import com.example.data.local.AppCountResult
 import com.example.data.local.CategoryCountResult
 import com.example.data.model.AnalyticsSummary
@@ -26,6 +26,7 @@ enum class NavDestination(val title: String) {
     ALL_NOTIFICATIONS("Semua Notifikasi"),
     CATEGORIES("Kategori & Statistik"),
     PERMISSIONS("Pusat Izin Akses"),
+    APP_FILTER("Whitelist & Blacklist"),
     TELEGRAM("Bot Telegram"),
     LOCATION("Lokasi & GPS"),
     SYSTEM_CLEANER("Pembersih Memori & Cache"),
@@ -51,10 +52,10 @@ data class FilterState(
 
 class NotificationViewModel(application: Application) : AndroidViewModel(application) {
 
-    private val repository = (application as NotifVaultApplication).repository
-    private val encryptionManager = (application as NotifVaultApplication).encryptionManager
-    private val telegramBotManager = (application as NotifVaultApplication).telegramBotManager
-    private val appFilterManager = (application as NotifVaultApplication).appFilterManager
+    private val repository = (application as FamlyApplication).repository
+    private val encryptionManager = (application as FamlyApplication).encryptionManager
+    private val telegramBotManager = (application as FamlyApplication).telegramBotManager
+    private val appFilterManager = (application as FamlyApplication).appFilterManager
     private val locationHelper by lazy { com.example.data.location.LocationHelper(getApplication()) }
     private val context: Context get() = getApplication<Application>().applicationContext
 

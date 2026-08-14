@@ -136,7 +136,7 @@ fun DisclaimerScreen() {
                     Spacer(modifier = Modifier.height(14.dp))
 
                     Text(
-                        text = "Pernyataan penolakan tanggung jawab hukum ini mengatur batasan penggunaan aplikasi NotifVault / Famly. Harap baca dengan teliti sebelum menggunakan fitur perekaman dan pemantauan.",
+                        text = "Pernyataan penolakan tanggung jawab hukum ini mengatur batasan penggunaan aplikasi Famly. Harap baca dengan teliti sebelum menggunakan fitur perekaman dan pemantauan.",
                         style = MaterialTheme.typography.bodySmall,
                         color = MinimalTextSecondary,
                         lineHeight = 18.sp

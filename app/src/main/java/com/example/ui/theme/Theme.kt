@@ -70,7 +70,7 @@ private val LightColorScheme = lightColorScheme(
 )
 
 @Composable
-fun NotifVaultTheme(
+fun FamlyTheme(
     themeMode: ThemeMode = ThemeMode.SYSTEM,
     dynamicColor: Boolean = false,
     content: @Composable () -> Unit
@@ -103,7 +103,7 @@ fun MyApplicationTheme(
     dynamicColor: Boolean = false,
     content: @Composable () -> Unit
 ) {
-    NotifVaultTheme(
+    FamlyTheme(
         themeMode = if (darkTheme) ThemeMode.DARK else ThemeMode.LIGHT,
         dynamicColor = dynamicColor,
         content = content

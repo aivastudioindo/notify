@@ -18,7 +18,7 @@ class EncryptionManager(context: Context) {
 
     companion object {
         private const val ANDROID_KEYSTORE = "AndroidKeyStore"
-        private const val KEY_ALIAS = "NotifVault_AES256_Key"
+        private const val KEY_ALIAS = "Famly_AES256_Key"
         private const val TRANSFORMATION = "AES/GCM/NoPadding"
         private const val TAG_LENGTH_BIT = 128
         private const val PREF_PIN_HASH = "vault_pin_hash"

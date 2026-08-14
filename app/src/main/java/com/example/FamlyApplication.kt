@@ -8,7 +8,7 @@ import com.example.data.telegram.TelegramBotManager
 
 import com.example.service.FamlyForegroundService
 
-class NotifVaultApplication : Application() {
+class FamlyApplication : Application() {
 
     val database by lazy { AppDatabase.getDatabase(this) }
     val encryptionManager by lazy { EncryptionManager.getInstance(this) }
@@ -25,7 +25,7 @@ class NotifVaultApplication : Application() {
     }
 
     companion object {
-        lateinit var instance: NotifVaultApplication
+        lateinit var instance: FamlyApplication
             private set
     }
 }

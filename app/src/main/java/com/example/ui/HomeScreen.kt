@@ -27,6 +27,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Call
 import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
@@ -206,13 +207,13 @@ fun HomeScreen(
 
                     Column(modifier = Modifier.weight(1f)) {
                         Text(
-                            text = "Akses Notifikasi Diperlukan",
+                            text = "Akses Notifikasi Belum Aktif",
                             style = MaterialTheme.typography.labelLarge,
                             fontWeight = FontWeight.SemiBold,
                             color = MinimalTextPrimary
                         )
                         Text(
-                            text = "Aktifkan listener agar Famly dapat merekam notifikasi otomatis.",
+                            text = "Petunjuk: Buka Pengaturan ➔ Pilih 'Famly Service' ➔ Aktifkan Sakelar Akses Notifikasi.",
                             style = MaterialTheme.typography.bodySmall,
                             color = MinimalTextSecondary
                         )
@@ -316,6 +317,42 @@ fun HomeScreen(
                     enabled = true,
                     selected = filterState.favoritesOnly,
                     borderColor = if (filterState.favoritesOnly) MinimalLavenderPrimary else MinimalBorder
+                ),
+                shape = RoundedCornerShape(20.dp)
+            )
+
+            // Calls Only Chip
+            val isCallFilterActive = filterState.searchQuery.equals("Panggilan", ignoreCase = true)
+            FilterChip(
+                selected = isCallFilterActive,
+                onClick = {
+                    if (isCallFilterActive) onSearchChange("") else onSearchChange("Panggilan")
+                },
+                label = {
+                    Text(
+                        text = "Panggilan",
+                        style = MaterialTheme.typography.labelSmall,
+                        fontWeight = if (isCallFilterActive) FontWeight.Bold else FontWeight.Normal
+                    )
+                },
+                leadingIcon = {
+                    Icon(
+                        imageVector = Icons.Default.Call,
+                        contentDescription = null,
+                        tint = if (isCallFilterActive) MinimalLavenderPrimary else MinimalTextSecondary,
+                        modifier = Modifier.size(16.dp)
+                    )
+                },
+                colors = FilterChipDefaults.filterChipColors(
+                    selectedContainerColor = MinimalLavenderPrimary.copy(alpha = 0.15f),
+                    selectedLabelColor = MinimalLavenderPrimary,
+                    containerColor = MinimalSurfaceElevated,
+                    labelColor = MinimalTextSecondary
+                ),
+                border = FilterChipDefaults.filterChipBorder(
+                    enabled = true,
+                    selected = isCallFilterActive,
+                    borderColor = if (isCallFilterActive) MinimalLavenderPrimary else MinimalBorder
                 ),
                 shape = RoundedCornerShape(20.dp)
             )

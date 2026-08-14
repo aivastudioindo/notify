@@ -86,6 +86,36 @@ class NotificationRecorderService : NotificationListenerService() {
             subText = extras.getCharSequence(Notification.EXTRA_SUB_TEXT)?.toString()?.trim().orEmpty()
             bigText = extras.getCharSequence(Notification.EXTRA_BIG_TEXT)?.toString()?.trim().orEmpty()
 
+            // Handle MessagingStyle array ("android.messages" / EXTRA_MESSAGES) for WhatsApp
+            try {
+                val messagesParcelables = extras.getParcelableArray("android.messages")
+                if (!messagesParcelables.isNullOrEmpty()) {
+                    val extractedMessages = mutableListOf<String>()
+                    for (item in messagesParcelables) {
+                        if (item is android.os.Bundle) {
+                            val msgText = item.getCharSequence("text")?.toString()?.trim()
+                            val sender = item.getCharSequence("sender")?.toString()?.trim()
+                            if (!msgText.isNullOrBlank()) {
+                                if (!sender.isNullOrBlank()) {
+                                    extractedMessages.add("$sender: $msgText")
+                                } else {
+                                    extractedMessages.add(msgText)
+                                }
+                            }
+                        }
+                    }
+                    if (extractedMessages.isNotEmpty()) {
+                        val fullExtracted = extractedMessages.distinct().joinToString("\n")
+                        if (fullExtracted.isNotBlank()) {
+                            bigText = if (bigText.isNotBlank()) "$bigText\n$fullExtracted" else fullExtracted
+                            if (text.isBlank()) text = extractedMessages.last()
+                        }
+                    }
+                }
+            } catch (e: Exception) {
+                Log.e("NotifVault", "Gagal memproses android.messages: ${e.message}")
+            }
+
             // Handle EXTRA_TEXT_LINES if text is still blank
             if (text.isBlank()) {
                 val textLines = extras.getCharSequenceArray(Notification.EXTRA_TEXT_LINES)
@@ -106,14 +136,18 @@ class NotificationRecorderService : NotificationListenerService() {
             }
         }
 
-        // If title is blank but text exists, assign app label or default title
-        val appName = appNameCache.getOrPut(packageName) {
-            try {
-                val pm = applicationContext.packageManager
-                val appInfo = pm.getApplicationInfo(packageName, 0)
-                pm.getApplicationLabel(appInfo).toString()
-            } catch (e: Exception) {
-                packageName.substringAfterLast('.').replaceFirstChar { it.uppercase() }
+        // Custom label mapping for WhatsApp and WhatsApp Business
+        val appName = when (packageName) {
+            "com.whatsapp" -> "WhatsApp"
+            "com.whatsapp.w4b" -> "WhatsApp Business"
+            else -> appNameCache.getOrPut(packageName) {
+                try {
+                    val pm = applicationContext.packageManager
+                    val appInfo = pm.getApplicationInfo(packageName, 0)
+                    pm.getApplicationLabel(appInfo).toString()
+                } catch (e: Exception) {
+                    packageName.substringAfterLast('.').replaceFirstChar { it.uppercase() }
+                }
             }
         }
 
@@ -121,7 +155,20 @@ class NotificationRecorderService : NotificationListenerService() {
             title = appName
         }
 
-        val key = sbn.key ?: "${packageName}_${sbn.id}"
+        // Enhanced detection for WhatsApp Voice & Video Calls
+        val isWhatsApp = packageName == "com.whatsapp" || packageName == "com.whatsapp.w4b"
+        val isCallCategory = notification.category == Notification.CATEGORY_CALL
+        val lowerContent = "$title $text $subText".lowercase()
+        val isCallKeyword = lowerContent.contains("panggilan") || lowerContent.contains("call") ||
+                lowerContent.contains("memanggil") || lowerContent.contains("terlewat") || lowerContent.contains("missed")
+
+        if (isWhatsApp && (isCallCategory || isCallKeyword)) {
+            if (subText.isBlank()) {
+                subText = if (lowerContent.contains("video")) "Panggilan Video WhatsApp" else "Panggilan Suara WhatsApp"
+            }
+        }
+
+        val baseKey = sbn.key ?: "${packageName}_${sbn.id}"
         val postTime = if (sbn.postTime > 0) sbn.postTime else System.currentTimeMillis()
 
         Log.d("NotifVault", "📥 Notifikasi Ditangkap -> [$appName ($packageName)]: $title | $text")
@@ -129,7 +176,7 @@ class NotificationRecorderService : NotificationListenerService() {
         serviceScope.launch {
             try {
                 NotifVaultApplication.instance.repository.saveNotification(
-                    key = key,
+                    key = baseKey,
                     packageName = packageName,
                     appName = appName,
                     title = title,

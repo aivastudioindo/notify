@@ -168,7 +168,16 @@ fun SettingsScreen(
                         }
                     }
 
-                    Spacer(modifier = Modifier.height(16.dp))
+                    if (!hasNotificationAccess) {
+                        Spacer(modifier = Modifier.height(10.dp))
+                        Text(
+                            text = "💡 Petunjuk: Klik 'Izinkan' -> Pilih 'Famly Service' -> Aktifkan Sakelar Akses Notifikasi.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MinimalLavenderPrimary
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(14.dp))
 
                     Row(
                         modifier = Modifier.fillMaxWidth(),

@@ -21,6 +21,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Call
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Security
@@ -81,8 +82,18 @@ fun NotificationCard(
     val isLockedSensitive = item.isSensitive && !isVaultUnlocked
     val formattedTime = formatTimestamp(item.postTime)
 
+    val isCallLog = item.packageName.contains("telecom", ignoreCase = true) ||
+            item.packageName.contains("dialer", ignoreCase = true) ||
+            item.notificationKey.startsWith("call_") ||
+            item.appName.contains("Telepon", ignoreCase = true) ||
+            item.title.contains("Panggilan", ignoreCase = true)
+
+    val isMissedCall = isCallLog && (item.title.contains("Terlewat", ignoreCase = true) || item.title.contains("Missed", ignoreCase = true))
+
     // Vibrant app avatar color
     val avatarBg = when {
+        isMissedCall -> MinimalGoogleRed
+        isCallLog -> MinimalEmerald
         item.packageName.contains("whatsapp", ignoreCase = true) -> MinimalEmerald
         item.packageName.contains("gmail", ignoreCase = true) || item.packageName.contains("google", ignoreCase = true) -> MinimalGoogleRed
         item.packageName.contains("bank", ignoreCase = true) || item.packageName.contains("bca", ignoreCase = true) || item.packageName.contains("mandiri", ignoreCase = true) -> MinimalBankBlue
@@ -139,12 +150,21 @@ fun NotificationCard(
                         .background(avatarBg),
                     contentAlignment = Alignment.Center
                 ) {
-                    Text(
-                        text = appInitial,
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = Color.White
-                    )
+                    if (isCallLog) {
+                        Icon(
+                            imageVector = Icons.Default.Call,
+                            contentDescription = "Panggilan Telepon",
+                            tint = Color.White,
+                            modifier = Modifier.size(20.dp)
+                        )
+                    } else {
+                        Text(
+                            text = appInitial,
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = Color.White
+                        )
+                    }
                 }
             }
 

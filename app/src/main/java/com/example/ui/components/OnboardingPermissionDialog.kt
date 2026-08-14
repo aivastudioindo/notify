@@ -160,10 +160,10 @@ fun OnboardingPermissionDialog(
                 PermissionStepCard(
                     stepNumber = "2",
                     icon = Icons.Default.NotificationsActive,
-                    title = "Akses Listener Notifikasi",
-                    description = "Diperlukan agar Famly dapat memantau pesan/notifikasi masuk dan menjalankan service Telegram 24/7.",
+                    title = "Akses Listener Notifikasi (Sistem)",
+                    description = "Petunjuk Pengaturan:\n1. Klik tombol di bawah untuk membuka Pengaturan HP.\n2. Cari dan pilih 'Famly Service'.\n3. Aktifkan sakelar ke posisi 'IZINKAN'.",
                     isGranted = isNotificationListenerGranted,
-                    buttonText = if (isNotificationListenerGranted) "Akses Notifikasi Aktif" else "2. Aktifkan Akses Notifikasi",
+                    buttonText = if (isNotificationListenerGranted) "Akses Notifikasi Aktif" else "2. Buka Pengaturan Akses Notifikasi",
                     onClick = {
                         AutostartHelper.openNotificationListenerSettings(context)
                     }

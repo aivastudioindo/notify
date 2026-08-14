@@ -52,7 +52,7 @@ class NotificationRepository(
         val cleanSubText = subText.trim()
         val cleanBigText = bigText.trim()
 
-        // 1. Check if entity with same notificationKey exists
+        // 1. Check if entity with exact same notificationKey exists
         val existingByKey = if (key.isNotBlank()) notificationDao.getByKey(key) else null
         if (existingByKey != null) {
             // Check if title, text, subText, bigText are identical
@@ -61,20 +61,18 @@ class NotificationRepository(
                 existingByKey.encryptedSubText == cleanSubText &&
                 existingByKey.encryptedBigText == cleanBigText
             ) {
-                // Completely duplicate notification - ignore duplicate
+                // Completely duplicate notification posted without changes - ignore
                 return@withContext existingByKey.id
             }
-            // Title or text updated (e.g. WhatsApp message thread updated) -> Update existing entity!
-            val updated = existingByKey.copy(
-                encryptedTitle = cleanTitle,
-                encryptedText = cleanText,
-                encryptedSubText = cleanSubText,
-                encryptedBigText = cleanBigText,
-                postTime = postTime,
-                isRead = false
-            )
-            notificationDao.updateNotification(updated)
-            return@withContext existingByKey.id
+            // Content changed in this conversation thread (e.g., new WhatsApp message or call status update)!
+            // To prevent overwriting and losing previous messages in the thread, we create a new unique key for this new message event.
+            val uniqueEventKey = "${key}_${postTime}_${(cleanTitle + cleanText).hashCode()}"
+            
+            // Check if this exact new event was already inserted
+            val existingEvent = notificationDao.getByKey(uniqueEventKey)
+            if (existingEvent != null) {
+                return@withContext existingEvent.id
+            }
         }
 
         // 2. Fallback duplicate check: Same package, title, and text posted within the last 15 seconds

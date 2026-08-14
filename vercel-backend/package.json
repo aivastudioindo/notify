@@ -1,0 +1,12 @@
+{
+  "name": "famly-vercel-bot",
+  "version": "1.0.0",
+  "description": "Telegram Webhook + FCM Push Notification Serverless Backend for Famly App",
+  "main": "api/telegram-webhook.js",
+  "scripts": {
+    "start": "node api/telegram-webhook.js"
+  },
+  "dependencies": {
+    "firebase-admin": "^12.0.0"
+  }
+}

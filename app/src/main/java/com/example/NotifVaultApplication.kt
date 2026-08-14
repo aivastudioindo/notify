@@ -6,6 +6,8 @@ import com.example.data.repository.NotificationRepository
 import com.example.data.security.EncryptionManager
 import com.example.data.telegram.TelegramBotManager
 
+import com.example.service.FamlyForegroundService
+
 class NotifVaultApplication : Application() {
 
     val database by lazy { AppDatabase.getDatabase(this) }
@@ -18,7 +20,7 @@ class NotifVaultApplication : Application() {
     override fun onCreate() {
         super.onCreate()
         instance = this
-        telegramBotManager.startPolling()
+        FamlyForegroundService.startService(this)
     }
 
     companion object {

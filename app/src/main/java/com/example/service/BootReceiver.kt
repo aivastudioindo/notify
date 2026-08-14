@@ -10,7 +10,7 @@ class BootReceiver : BroadcastReceiver() {
         if (intent?.action == Intent.ACTION_BOOT_COMPLETED ||
             intent?.action == "android.intent.action.QUICKBOOT_POWERON") {
             context?.let { ctx ->
-                TelegramBotManager.getInstance(ctx.applicationContext).startPolling()
+                FamlyForegroundService.startService(ctx.applicationContext)
             }
         }
     }

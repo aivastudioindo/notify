@@ -3,24 +3,30 @@ package com.example.data.telegram
 import android.content.Context
 import android.content.SharedPreferences
 import android.util.Log
+import com.example.data.location.LocationHelper
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import org.json.JSONObject
+import java.io.IOException
 import java.net.HttpURLConnection
 import java.net.URL
-import java.net.URLEncoder
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
-import org.json.JSONObject
 
 class TelegramBotManager(private val context: Context) {
 
     private val prefs: SharedPreferences =
         context.getSharedPreferences("notif_vault_telegram_prefs", Context.MODE_PRIVATE)
 
-    private var pollingJob: kotlinx.coroutines.Job? = null
+    @Volatile
+    private var pollingJob: Job? = null
+    @Volatile
     private var lastUpdateId: Long = 0
 
     companion object {
@@ -36,7 +42,6 @@ class TelegramBotManager(private val context: Context) {
             return INSTANCE ?: synchronized(this) {
                 INSTANCE ?: TelegramBotManager(context.applicationContext).also {
                     INSTANCE = it
-                    it.startPolling()
                 }
             }
         }
@@ -44,9 +49,9 @@ class TelegramBotManager(private val context: Context) {
 
     fun isEnabled(): Boolean = prefs.getBoolean(PREF_IS_ENABLED, false)
 
-    fun getBotToken(): String = prefs.getString(PREF_BOT_TOKEN, "") ?: ""
+    fun getBotToken(): String = prefs.getString(PREF_BOT_TOKEN, "")?.trim() ?: ""
 
-    fun getChatId(): String = prefs.getString(PREF_CHAT_ID, "") ?: ""
+    fun getChatId(): String = prefs.getString(PREF_CHAT_ID, "")?.trim() ?: ""
 
     fun isExcludeSensitive(): Boolean = prefs.getBoolean(PREF_EXCLUDE_SENSITIVE, true)
 
@@ -63,49 +68,63 @@ class TelegramBotManager(private val context: Context) {
             .putBoolean(PREF_EXCLUDE_SENSITIVE, excludeSensitive)
             .apply()
 
-        if (enabled && botToken.isNotBlank()) {
-            startPolling()
-        } else {
+        if (!enabled || botToken.isBlank()) {
             stopPolling()
         }
     }
 
-    fun startPolling() {
-        if (pollingJob?.isActive == true) return
-        if (!isEnabled() || getBotToken().isBlank()) return
+    @Synchronized
+    fun startPolling(scope: CoroutineScope? = null) {
+        if (pollingJob?.isActive == true) {
+            Log.d("TelegramBotManager", "Polling sudah aktif running, abaikan pemicu ganda.")
+            return
+        }
+        val token = getBotToken()
+        if (!isEnabled() || token.isBlank()) {
+            Log.d("TelegramBotManager", "Telegram bot tidak diaktifkan atau token belum diisi.")
+            return
+        }
 
-        pollingJob = kotlinx.coroutines.CoroutineScope(Dispatchers.IO).launch {
-            Log.d("TelegramBotManager", "Mulai listener perintah Telegram Bot (/lokasi)...")
+        val targetScope = scope ?: CoroutineScope(Dispatchers.IO)
+        pollingJob = targetScope.launch(Dispatchers.IO) {
+            Log.d("TelegramBotManager", "Memulai Telegram Long Polling di Service...")
             while (isActive && isEnabled()) {
-                try {
-                    pollUpdates()
-                } catch (e: Exception) {
-                    Log.e("TelegramBotManager", "Error polling Telegram: ${e.message}")
+                val currentToken = getBotToken()
+                if (currentToken.isBlank()) {
+                    delay(5000L)
+                    continue
                 }
-                kotlinx.coroutines.delay(2500L)
+
+                try {
+                    pollUpdates(currentToken)
+                } catch (e: Exception) {
+                    Log.e("TelegramBotManager", "Exception pada polling Telegram: ${e.message}")
+                    delay(3000L)
+                }
             }
         }
     }
 
+    @Synchronized
     fun stopPolling() {
+        Log.d("TelegramBotManager", "Menghentikan Telegram Long Polling...")
         pollingJob?.cancel()
         pollingJob = null
     }
 
-    private suspend fun pollUpdates() {
-        val token = getBotToken()
+    private suspend fun pollUpdates(token: String) {
         val configuredChatId = getChatId()
-        if (token.isBlank()) return
 
         try {
-            val urlString = "https://api.telegram.org/bot$token/getUpdates?offset=${lastUpdateId + 1}&timeout=3"
+            val urlString = "https://api.telegram.org/bot$token/getUpdates?offset=${lastUpdateId + 1}&timeout=15"
             val url = URL(urlString)
             val conn = url.openConnection() as HttpURLConnection
             conn.requestMethod = "GET"
-            conn.connectTimeout = 8000
-            conn.readTimeout = 8000
+            conn.connectTimeout = 15000
+            conn.readTimeout = 25000
 
-            if (conn.responseCode == HttpURLConnection.HTTP_OK) {
+            val responseCode = conn.responseCode
+            if (responseCode == HttpURLConnection.HTTP_OK) {
                 val responseText = conn.inputStream.bufferedReader().use { it.readText() }
                 val json = JSONObject(responseText)
                 if (json.optBoolean("ok")) {
@@ -119,57 +138,120 @@ class TelegramBotManager(private val context: Context) {
 
                         val message = update.optJSONObject("message") ?: continue
                         val text = message.optString("text", "").trim()
-                        val fromChat = message.optJSONObject("chat")
-                        val chatIdFromMessage = fromChat?.optLong("id")?.toString() ?: ""
+                        if (text.isBlank()) continue
 
-                        // Process command if chat matches configured chat ID (or if configuredChatId is blank)
-                        val targetChatId = if (configuredChatId.isNotBlank()) configuredChatId else chatIdFromMessage
-                        if (chatIdFromMessage == targetChatId || configuredChatId.isBlank()) {
-                            handleCommand(text, targetChatId)
+                        val fromChat = message.optJSONObject("chat")
+                        val messageChatId = fromChat?.optLong("id")?.toString()?.trim() ?: ""
+
+                        // SECURITY: ALLOWED_CHAT_ID Verification
+                        if (configuredChatId.isNotBlank() && messageChatId != configuredChatId) {
+                            Log.w(
+                                "TelegramBotManager",
+                                "Mengabaikan perintah dari Chat ID tidak terdaftar: '$messageChatId' (Allowed Chat ID: '$configuredChatId')"
+                            )
+                            continue
+                        }
+
+                        val command = parseCommand(text)
+                        if (command.isNotBlank()) {
+                            val targetChatId = if (messageChatId.isNotBlank()) messageChatId else configuredChatId
+                            if (targetChatId.isNotBlank()) {
+                                handleCommand(command, targetChatId)
+                            }
                         }
                     }
                 }
+            } else {
+                Log.e("TelegramBotManager", "HTTP Polling Error Code: $responseCode")
+                delay(3000L)
             }
+        } catch (e: IOException) {
+            Log.e("TelegramBotManager", "Network IOException pada polling Telegram: ${e.message}")
+            delay(3000L)
         } catch (e: Exception) {
-            Log.e("TelegramBotManager", "Gagal memproses update Telegram: ${e.message}")
+            Log.e("TelegramBotManager", "Error tak terduga pada polling Telegram: ${e.message}")
+            delay(3000L)
         }
     }
 
-    private fun handleCommand(text: String, chatId: String) {
+    private fun parseCommand(text: String): String {
+        val trimmed = text.trim()
+        if (!trimmed.startsWith("/")) return ""
+
+        val firstWord = trimmed.split("\\s+".toRegex()).firstOrNull() ?: return ""
+        return firstWord.substringBefore("@").lowercase(Locale.ROOT)
+    }
+
+    private fun handleCommand(command: String, chatId: String) {
         val token = getBotToken()
         if (token.isBlank() || chatId.isBlank()) return
 
-        val lowerText = text.lowercase()
-        when {
-            lowerText.startsWith("/lokasi") || lowerText.startsWith("/location") || lowerText.startsWith("/where") -> {
-                executeSendMessage(token, chatId, "⏳ <i>Mengambil koordinat GPS HP anak... Mohon tunggu sebentar.</i>")
-                val locationHelper = com.example.data.location.LocationHelper(context)
+        val locationHelper = LocationHelper(context)
+        val timeStr = SimpleDateFormat("HH:mm:ss - dd MMM yyyy", Locale.getDefault()).format(Date())
+
+        when (command) {
+            "/lokasi", "/location", "/where" -> {
+                if (!locationHelper.hasLocationPermission()) {
+                    executeSendMessage(
+                        token,
+                        chatId,
+                        "⚠️ <b>Izin lokasi belum diberikan pada HP anak.</b>\n<i>Mohon izinkan akses lokasi di aplikasi Famly pada HP anak.</i>"
+                    )
+                    return
+                }
+
+                if (!locationHelper.isGpsEnabled()) {
+                    executeSendMessage(
+                        token,
+                        chatId,
+                        "⚠️ <b>GPS / Lokasi pada HP anak sedang NONAKTIF.</b>\n<i>Mohon nyalakan GPS di HP anak.</i>"
+                    )
+                    return
+                }
+
+                executeSendMessage(
+                    token,
+                    chatId,
+                    "⏳ <i>[GPS] Mengambil koordinat GPS HP anak... Mohon tunggu sebentar.</i>"
+                )
+
                 locationHelper.getCurrentLocation(
                     onSuccess = { loc ->
-                        kotlinx.coroutines.CoroutineScope(Dispatchers.IO).launch {
-                            sendLocation(loc.latitude, loc.longitude, chatId)
+                        CoroutineScope(Dispatchers.IO).launch {
+                            sendLocationPin(token, chatId, loc.latitude, loc.longitude)
+                            sendLocationDetailsText(token, chatId, loc.latitude, loc.longitude, timeStr)
                         }
                     },
                     onError = { err ->
-                        kotlinx.coroutines.CoroutineScope(Dispatchers.IO).launch {
+                        CoroutineScope(Dispatchers.IO).launch {
                             executeSendMessage(
                                 token,
                                 chatId,
-                                "⚠️ <b>Gagal Mengambil Lokasi:</b> $err\n\n<i>Pastikan izin GPS pada HP anak telah diizinkan di aplikasi Famly.</i>"
+                                "⚠️ <b>Gagal Mengambil Lokasi:</b>\n$err"
                             )
                         }
                     }
                 )
             }
-            lowerText == "/start" || lowerText == "/help" -> {
+            "/ping" -> {
+                val isGpsActive = locationHelper.isGpsEnabled()
+                val gpsStatusText = if (isGpsActive) "AKTIF" else "NONAKTIF"
+                val replyMsg = StringBuilder().apply {
+                    append("HP anak online ✅\n")
+                    append("GPS: $gpsStatusText\n")
+                    append("Service: AKTIF\n")
+                    append("Waktu: $timeStr")
+                }.toString()
+
+                executeSendMessage(token, chatId, replyMsg)
+            }
+            "/start", "/help" -> {
                 val replyMsg = "👋 <b>Selamat Datang di Bot Famly!</b>\n\n" +
                         "Perintah yang dapat Anda gunakan:\n" +
                         "• <code>/lokasi</code> - Meminta koordinat GPS & peta lokasi terkini anak\n" +
-                        "• <code>/ping</code> - Cek status koneksi bot HP anak"
+                        "• <code>/ping</code> - Cek status koneksi bot & GPS HP anak\n" +
+                        "• <code>/help</code> - Menampilkan bantuan ini"
                 executeSendMessage(token, chatId, replyMsg)
-            }
-            lowerText == "/ping" -> {
-                executeSendMessage(token, chatId, "✅ <b>Bot Famly Online!</b> HP anak terhubung dan siap merespons perintah.")
             }
         }
     }
@@ -194,7 +276,7 @@ class TelegramBotManager(private val context: Context) {
         }
 
         val timeStr = SimpleDateFormat("HH:mm:ss - dd MMM yyyy", Locale.getDefault()).format(Date(postTime))
-        
+
         val message = StringBuilder().apply {
             append("🔔 <b>[Famly] Notifikasi Baru</b>\n\n")
             append("📱 <b>Aplikasi:</b> ${escapeHtml(appName)}\n")
@@ -221,46 +303,18 @@ class TelegramBotManager(private val context: Context) {
         if (token.isBlank() || chatId.isBlank()) return@withContext false
 
         val timeStr = SimpleDateFormat("HH:mm:ss - dd MMM yyyy", Locale.getDefault()).format(Date())
-        val mapsUrl = "https://maps.google.com/?q=$latitude,$longitude"
-
-        val textMsg = StringBuilder().apply {
-            append("📍 <b>[Famly] Lokasi Terkini Anak</b>\n\n")
-            append("🌐 <b>Koordinat GPS:</b> <code>$latitude, $longitude</code>\n")
-            append("🗺️ <b>Peta Google Maps:</b> <a href=\"$mapsUrl\">Buka di Maps</a>\n\n")
-            append("🕒 <i>$timeStr</i>")
-        }.toString()
-
-        // First send location pin
-        executeSendLocationPin(token, chatId, latitude, longitude)
-        // Second send text with link
-        return@withContext executeSendMessage(token, chatId, textMsg)
+        sendLocationPin(token, chatId, latitude, longitude)
+        return@withContext sendLocationDetailsText(token, chatId, latitude, longitude, timeStr)
     }
 
-    suspend fun testConnection(token: String, chatId: String): String = withContext(Dispatchers.IO) {
-        val cleanToken = token.trim()
-        val cleanChatId = chatId.trim()
-
-        if (cleanToken.isBlank()) return@withContext "Bot Token tidak boleh kosong."
-        if (cleanChatId.isBlank()) return@withContext "Chat ID tidak boleh kosong."
-
-        val testMsg = "🎉 <b>[Famly] Uji Coba Bot Telegram Sukses!</b>\n\nBot Telegram Famly telah terhubung dan siap meneruskan notifikasi & koordinat lokasi anak."
-
-        val success = executeSendMessage(cleanToken, cleanChatId, testMsg)
-        if (success) {
-            "SUCCESS: Pesan tes berhasil dikirim ke Telegram!"
-        } else {
-            "ERROR: Gagal mengirim pesan. Pastikan Token dan Chat ID benar, serta sudah menekan /start pada bot."
-        }
-    }
-
-    private fun executeSendLocationPin(token: String, chatId: String, latitude: Double, longitude: Double): Boolean {
+    private fun sendLocationPin(token: String, chatId: String, latitude: Double, longitude: Double): Boolean {
         return try {
             val urlString = "https://api.telegram.org/bot$token/sendLocation"
             val url = URL(urlString)
             val conn = url.openConnection() as HttpURLConnection
             conn.requestMethod = "POST"
-            conn.connectTimeout = 8000
-            conn.readTimeout = 8000
+            conn.connectTimeout = 10000
+            conn.readTimeout = 10000
             conn.doOutput = true
             conn.setRequestProperty("Content-Type", "application/json; charset=utf-8")
 
@@ -278,8 +332,43 @@ class TelegramBotManager(private val context: Context) {
             val responseCode = conn.responseCode
             responseCode == HttpURLConnection.HTTP_OK
         } catch (e: Exception) {
-            Log.e("TelegramBotManager", "Gagal mengirim location pin Telegram: ${e.message}", e)
+            Log.e("TelegramBotManager", "Gagal mengirim location pin ke Telegram: ${e.message}", e)
             false
+        }
+    }
+
+    private fun sendLocationDetailsText(
+        token: String,
+        chatId: String,
+        latitude: Double,
+        longitude: Double,
+        timeStr: String
+    ): Boolean {
+        val mapsUrl = "https://maps.google.com/?q=$latitude,$longitude"
+        val textMsg = StringBuilder().apply {
+            append("📍 <b>[Famly] Lokasi Terkini Anak</b>\n\n")
+            append("🌐 <b>Koordinat GPS:</b> <code>$latitude, $longitude</code>\n")
+            append("🗺️ <b>Peta Google Maps:</b> <a href=\"$mapsUrl\">Buka di Maps</a>\n\n")
+            append("🕒 <i>$timeStr</i>")
+        }.toString()
+
+        return executeSendMessage(token, chatId, textMsg)
+    }
+
+    suspend fun testConnection(token: String, chatId: String): String = withContext(Dispatchers.IO) {
+        val cleanToken = token.trim()
+        val cleanChatId = chatId.trim()
+
+        if (cleanToken.isBlank()) return@withContext "Bot Token tidak boleh kosong."
+        if (cleanChatId.isBlank()) return@withContext "Chat ID tidak boleh kosong."
+
+        val testMsg = "🎉 <b>[Famly] Uji Coba Bot Telegram Sukses!</b>\n\nBot Telegram Famly telah terhubung dan siap merespons perintah /lokasi & /ping."
+
+        val success = executeSendMessage(cleanToken, cleanChatId, testMsg)
+        if (success) {
+            "SUCCESS: Pesan tes berhasil dikirim ke Telegram!"
+        } else {
+            "ERROR: Gagal mengirim pesan. Pastikan Token dan Chat ID benar, serta sudah menekan /start pada bot."
         }
     }
 
@@ -289,8 +378,8 @@ class TelegramBotManager(private val context: Context) {
             val url = URL(urlString)
             val conn = url.openConnection() as HttpURLConnection
             conn.requestMethod = "POST"
-            conn.connectTimeout = 8000
-            conn.readTimeout = 8000
+            conn.connectTimeout = 10000
+            conn.readTimeout = 10000
             conn.doOutput = true
             conn.setRequestProperty("Content-Type", "application/json; charset=utf-8")
 

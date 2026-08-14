@@ -23,13 +23,13 @@ class NotificationRecorderService : NotificationListenerService() {
 
     override fun onCreate() {
         super.onCreate()
-        com.example.data.telegram.TelegramBotManager.getInstance(applicationContext).startPolling()
+        FamlyForegroundService.startService(applicationContext)
     }
 
     override fun onListenerConnected() {
         super.onListenerConnected()
         Log.d("NotifVault", "NotificationRecorderService terhubung dan aktif merekam!")
-        com.example.data.telegram.TelegramBotManager.getInstance(applicationContext).startPolling()
+        FamlyForegroundService.startService(applicationContext)
     }
 
     override fun onNotificationPosted(sbn: StatusBarNotification?) {

@@ -30,6 +30,12 @@ class LocationHelper(private val context: Context) {
     private val locationManager: LocationManager? =
         context.getSystemService(Context.LOCATION_SERVICE) as? LocationManager
 
+    fun isGpsEnabled(): Boolean {
+        val gpsOn = locationManager?.isProviderEnabled(LocationManager.GPS_PROVIDER) == true
+        val networkOn = locationManager?.isProviderEnabled(LocationManager.NETWORK_PROVIDER) == true
+        return gpsOn || networkOn
+    }
+
     fun hasLocationPermission(): Boolean {
         val finePermission = ContextCompat.checkSelfPermission(
             context,
@@ -53,36 +59,34 @@ class LocationHelper(private val context: Context) {
             return
         }
 
+        val isGpsEnabled = locationManager?.isProviderEnabled(LocationManager.GPS_PROVIDER) == true
+        val isNetworkEnabled = locationManager?.isProviderEnabled(LocationManager.NETWORK_PROVIDER) == true
+
+        if (!isGpsEnabled && !isNetworkEnabled) {
+            onError("GPS / Lokasi pada HP anak sedang NONAKTIF. Mohon nyalakan GPS di HP anak.")
+            return
+        }
+
         CoroutineScope(Dispatchers.IO).launch {
             try {
-                // 1. Get best last known location immediately as a candidate
-                val bestLastKnown = getBestLastKnownLocation()
-
-                // 2. Try getting a fresh location with a 7-second timeout
-                val freshLocation = withTimeoutOrNull(7000L) {
-                    fetchFreshLocation()
+                // Request fresh real location with 12-second timeout
+                val freshLocation = withTimeoutOrNull(12000L) {
+                    fetchFreshRealLocation()
                 }
 
-                val finalLocation = freshLocation ?: bestLastKnown
-
-                if (finalLocation != null) {
-                    onSuccess(finalLocation)
+                if (freshLocation != null) {
+                    onSuccess(freshLocation)
                 } else {
-                    onError("GPS/Lokasi HP anak tidak memberikan koordinat. Pastikan GPS/Lokasi HP anak diaktifkan.")
+                    onError("Gagal memperoleh koordinat GPS terkini HP anak. Pastikan HP anak berada di area terjangkau sinyal & GPS aktif.")
                 }
             } catch (e: Exception) {
                 Log.e("LocationHelper", "Error getting location: ${e.message}", e)
-                val fallback = getBestLastKnownLocation()
-                if (fallback != null) {
-                    onSuccess(fallback)
-                } else {
-                    onError("Gagal mengakses sensor lokasi: ${e.message ?: "Unknown error"}")
-                }
+                onError("Gagal mengakses sensor lokasi: ${e.message ?: "Unknown error"}")
             }
         }
     }
 
-    private suspend fun fetchFreshLocation(): Location? = kotlinx.coroutines.suspendCancellableCoroutine { continuation ->
+    private suspend fun fetchFreshRealLocation(): Location? = kotlinx.coroutines.suspendCancellableCoroutine { continuation ->
         if (!hasLocationPermission()) {
             if (continuation.isActive) continuation.resume(null, null)
             return@suspendCancellableCoroutine
@@ -99,29 +103,29 @@ class LocationHelper(private val context: Context) {
         try {
             val cancellationTokenSource = CancellationTokenSource()
             fusedLocationClient.getCurrentLocation(
-                Priority.PRIORITY_BALANCED_POWER_ACCURACY,
+                Priority.PRIORITY_HIGH_ACCURACY,
                 cancellationTokenSource.token
             ).addOnSuccessListener { loc ->
                 if (loc != null) {
                     safeResume(loc)
                 } else {
-                    requestLocationUpdatesFallback { loc2 ->
+                    requestLocationUpdatesReal { loc2 ->
                         safeResume(loc2)
                     }
                 }
             }.addOnFailureListener {
-                requestLocationUpdatesFallback { loc2 ->
+                requestLocationUpdatesReal { loc2 ->
                     safeResume(loc2)
                 }
             }
         } catch (e: Exception) {
-            requestLocationUpdatesFallback { loc2 ->
+            requestLocationUpdatesReal { loc2 ->
                 safeResume(loc2)
             }
         }
     }
 
-    private fun requestLocationUpdatesFallback(onResult: (Location?) -> Unit) {
+    private fun requestLocationUpdatesReal(onResult: (Location?) -> Unit) {
         if (!hasLocationPermission()) {
             onResult(null)
             return
@@ -139,18 +143,18 @@ class LocationHelper(private val context: Context) {
         }
 
         try {
-            val req = LocationRequest.Builder(Priority.PRIORITY_BALANCED_POWER_ACCURACY, 3000L)
+            val req = LocationRequest.Builder(Priority.PRIORITY_HIGH_ACCURACY, 2000L)
                 .setMaxUpdates(1)
                 .build()
 
             fusedLocationClient.requestLocationUpdates(req, callback, Looper.getMainLooper())
         } catch (e: Exception) {
             Log.e("LocationHelper", "Error requesting location updates: ${e.message}")
-            trySystemLocationManager(onResult)
+            trySystemLocationManagerReal(onResult)
         }
     }
 
-    private fun trySystemLocationManager(onResult: (Location?) -> Unit) {
+    private fun trySystemLocationManagerReal(onResult: (Location?) -> Unit) {
         if (locationManager == null) {
             onResult(null)
             return
@@ -173,43 +177,16 @@ class LocationHelper(private val context: Context) {
                 override fun onProviderDisabled(provider: String) {}
             }
 
-            if (locationManager.isProviderEnabled(LocationManager.NETWORK_PROVIDER)) {
-                locationManager.requestSingleUpdate(LocationManager.NETWORK_PROVIDER, listener, Looper.getMainLooper())
-            } else if (locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER)) {
+            if (locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER)) {
                 locationManager.requestSingleUpdate(LocationManager.GPS_PROVIDER, listener, Looper.getMainLooper())
+            } else if (locationManager.isProviderEnabled(LocationManager.NETWORK_PROVIDER)) {
+                locationManager.requestSingleUpdate(LocationManager.NETWORK_PROVIDER, listener, Looper.getMainLooper())
             } else {
-                onResult(getBestLastKnownLocation())
+                onResult(null)
             }
         } catch (e: Exception) {
-            onResult(getBestLastKnownLocation())
+            onResult(null)
         }
-    }
-
-    private fun getBestLastKnownLocation(): Location? {
-        if (!hasLocationPermission()) return null
-
-        var bestLocation: Location? = null
-
-        try {
-            val providers = listOfNotNull(
-                LocationManager.GPS_PROVIDER,
-                LocationManager.NETWORK_PROVIDER,
-                LocationManager.PASSIVE_PROVIDER
-            )
-
-            for (provider in providers) {
-                try {
-                    val loc = locationManager?.getLastKnownLocation(provider) ?: continue
-                    if (bestLocation == null || loc.time > bestLocation.time) {
-                        bestLocation = loc
-                    }
-                } catch (e: Exception) {}
-            }
-        } catch (e: Exception) {
-            Log.e("LocationHelper", "Error getting best last known location: ${e.message}")
-        }
-
-        return bestLocation
     }
 }
 

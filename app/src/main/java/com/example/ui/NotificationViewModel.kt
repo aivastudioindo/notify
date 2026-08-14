@@ -24,8 +24,12 @@ import kotlinx.coroutines.launch
 
 enum class NavDestination(val title: String) {
     ALL_NOTIFICATIONS("Semua Notifikasi"),
-    CATEGORIES("Kategori Aplikasi"),
-    SETTINGS("Pengaturan")
+    CATEGORIES("Kategori & Statistik"),
+    APP_FILTER("Filter Aplikasi"),
+    TELEGRAM("Bot Telegram"),
+    LOCATION("Lokasi & GPS"),
+    SECURITY("Keamanan & PIN"),
+    SETTINGS("Sistem & Cadangan")
 }
 
 enum class DateFilter(val label: String) {
@@ -402,6 +406,33 @@ class NotificationViewModel(application: Application) : AndroidViewModel(applica
             _telegramTestStatus.value = result
             _isTestingTelegram.value = false
         }
+    }
+
+    fun hasLocationPermission(): Boolean = locationHelper.hasLocationPermission()
+    fun isGpsEnabled(): Boolean = locationHelper.isGpsEnabled()
+
+    private val _currentLocationState = MutableStateFlow<String?>(null)
+    val currentLocationState: StateFlow<String?> = _currentLocationState.asStateFlow()
+
+    private val _isFetchingLocation = MutableStateFlow(false)
+    val isFetchingLocation: StateFlow<Boolean> = _isFetchingLocation.asStateFlow()
+
+    fun testCurrentLocation(onComplete: ((String) -> Unit)? = null) {
+        _isFetchingLocation.value = true
+        _currentLocationState.value = "Sedang mengambil koordinat GPS..."
+        locationHelper.getCurrentLocation(
+            onSuccess = { loc ->
+                _isFetchingLocation.value = false
+                val res = "Latitude: ${loc.latitude}\nLongitude: ${loc.longitude}\nAkurasi: ±${loc.accuracy.toInt()} meter\nProvider: ${loc.provider}"
+                _currentLocationState.value = res
+                onComplete?.invoke("SUCCESS: Koordinat didapat ($res)")
+            },
+            onError = { err ->
+                _isFetchingLocation.value = false
+                _currentLocationState.value = "Error: $err"
+                onComplete?.invoke("ERROR: $err")
+            }
+        )
     }
 
     fun sendLocationToTelegram(onResult: (String) -> Unit) {

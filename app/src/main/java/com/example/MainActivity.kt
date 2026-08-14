@@ -57,10 +57,17 @@ import androidx.compose.ui.unit.sp
 import com.example.ui.CategoriesScreen
 import com.example.ui.CalculatorScreen
 import com.example.ui.HomeScreen
+import com.example.ui.AppFilterScreen
+import com.example.ui.TelegramScreen
+import com.example.ui.LocationScreen
+import com.example.ui.SecurityScreen
 import com.example.ui.NavDestination
 import com.example.ui.NotificationViewModel
 import com.example.ui.PinDialogMode
 import com.example.ui.SettingsScreen
+import androidx.compose.material.icons.filled.FilterList
+import androidx.compose.material.icons.filled.LocationOn
+import androidx.compose.material.icons.filled.Send
 import com.example.ui.components.AppDrawerContent
 import com.example.ui.components.NotificationDetailDialog
 import com.example.ui.components.OnboardingPermissionDialog
@@ -192,6 +199,10 @@ fun NotifVaultApp(viewModel: NotificationViewModel) {
                                 imageVector = when (dest) {
                                     NavDestination.ALL_NOTIFICATIONS -> Icons.Default.Notifications
                                     NavDestination.CATEGORIES -> Icons.Default.Category
+                                    NavDestination.APP_FILTER -> Icons.Default.FilterList
+                                    NavDestination.TELEGRAM -> Icons.Default.Send
+                                    NavDestination.LOCATION -> Icons.Default.LocationOn
+                                    NavDestination.SECURITY -> Icons.Default.Lock
                                     NavDestination.SETTINGS -> Icons.Default.Settings
                                 },
                                 contentDescription = dest.title
@@ -407,27 +418,12 @@ private fun AppMainScaffold(
                     )
                 }
 
-                NavDestination.SETTINGS -> {
-                    val hasNotificationAccess by viewModel.hasNotificationAccess.collectAsState()
-                    val isCalculatorDisguiseEnabled by viewModel.isCalculatorDisguiseEnabled.collectAsState()
+                NavDestination.APP_FILTER -> {
                     val filterMode by viewModel.filterMode.collectAsState()
                     val blacklist by viewModel.blacklist.collectAsState()
                     val whitelist by viewModel.whitelist.collectAsState()
-                    val isTelegramEnabled by viewModel.isTelegramEnabled.collectAsState()
-                    val telegramBotToken by viewModel.telegramBotToken.collectAsState()
-                    val telegramChatId by viewModel.telegramChatId.collectAsState()
-                    val telegramExcludeSensitive by viewModel.telegramExcludeSensitive.collectAsState()
-                    val telegramTestStatus by viewModel.telegramTestStatus.collectAsState()
-                    val isTestingTelegram by viewModel.isTestingTelegram.collectAsState()
 
-                    SettingsScreen(
-                        hasNotificationAccess = hasNotificationAccess,
-                        isPinProtectionEnabled = isPinProtectionEnabled,
-                        isVaultUnlocked = isVaultUnlocked,
-                        isCalculatorDisguiseEnabled = isCalculatorDisguiseEnabled,
-                        onToggleCalculatorDisguise = { enabled ->
-                            viewModel.setCalculatorDisguise(enabled)
-                        },
+                    AppFilterScreen(
                         filterMode = filterMode,
                         blacklist = blacklist,
                         whitelist = whitelist,
@@ -438,7 +434,19 @@ private fun AppMainScaffold(
                         onRemoveFromWhitelist = { pkg -> viewModel.removeFromWhitelist(pkg) },
                         onResetFilterDefaults = { viewModel.resetFilterDefaults() },
                         onGetInstalledApps = { viewModel.getInstalledApps() },
-                        onGetAppName = { pkg -> viewModel.getAppNameForPackage(pkg) },
+                        onGetAppName = { pkg -> viewModel.getAppNameForPackage(pkg) }
+                    )
+                }
+
+                NavDestination.TELEGRAM -> {
+                    val isTelegramEnabled by viewModel.isTelegramEnabled.collectAsState()
+                    val telegramBotToken by viewModel.telegramBotToken.collectAsState()
+                    val telegramChatId by viewModel.telegramChatId.collectAsState()
+                    val telegramExcludeSensitive by viewModel.telegramExcludeSensitive.collectAsState()
+                    val telegramTestStatus by viewModel.telegramTestStatus.collectAsState()
+                    val isTestingTelegram by viewModel.isTestingTelegram.collectAsState()
+
+                    TelegramScreen(
                         isTelegramEnabled = isTelegramEnabled,
                         telegramBotToken = telegramBotToken,
                         telegramChatId = telegramChatId,
@@ -449,11 +457,46 @@ private fun AppMainScaffold(
                             viewModel.updateTelegramSettings(enabled, token, chatId, excludeSensitive)
                         },
                         onSendTelegramTestMessage = { viewModel.sendTelegramTestMessage() },
-                        onSendLocationToTelegram = { onResult -> viewModel.sendLocationToTelegram(onResult) },
-                        onOpenNotificationSettings = { viewModel.openOnboardingDialog() },
+                        onSendLocationToTelegram = { onResult -> viewModel.sendLocationToTelegram(onResult) }
+                    )
+                }
+
+                NavDestination.LOCATION -> {
+                    val currentLocationState by viewModel.currentLocationState.collectAsState()
+                    val isFetchingLocation by viewModel.isFetchingLocation.collectAsState()
+
+                    LocationScreen(
+                        hasLocationPermission = viewModel.hasLocationPermission(),
+                        isGpsEnabled = viewModel.isGpsEnabled(),
+                        currentLocationState = currentLocationState,
+                        isFetchingLocation = isFetchingLocation,
+                        onTestLocation = { onResult -> viewModel.testCurrentLocation(onResult) },
+                        onSendLocationToTelegram = { onResult -> viewModel.sendLocationToTelegram(onResult) }
+                    )
+                }
+
+                NavDestination.SECURITY -> {
+                    val isCalculatorDisguiseEnabled by viewModel.isCalculatorDisguiseEnabled.collectAsState()
+
+                    SecurityScreen(
+                        isPinProtectionEnabled = isPinProtectionEnabled,
+                        isVaultUnlocked = isVaultUnlocked,
+                        isCalculatorDisguiseEnabled = isCalculatorDisguiseEnabled,
+                        onToggleCalculatorDisguise = { enabled ->
+                            viewModel.setCalculatorDisguise(enabled)
+                        },
                         onOpenSetPinDialog = { viewModel.openSetPinDialog() },
                         onDisablePin = { viewModel.disablePinProtection() },
-                        onLockVault = { viewModel.lockVault() },
+                        onLockVault = { viewModel.lockVault() }
+                    )
+                }
+
+                NavDestination.SETTINGS -> {
+                    val hasNotificationAccess by viewModel.hasNotificationAccess.collectAsState()
+
+                    SettingsScreen(
+                        hasNotificationAccess = hasNotificationAccess,
+                        onOpenNotificationSettings = { viewModel.openOnboardingDialog() },
                         onClearAllData = { viewModel.clearAll() }
                     )
                 }

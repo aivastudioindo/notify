@@ -74,6 +74,7 @@ interface NotificationDao {
         AND encryptedTitle = :title 
         AND encryptedText = :text 
         AND postTime >= :minTime 
+        ORDER BY postTime DESC 
         LIMIT 1
     """)
     suspend fun findRecentDuplicate(

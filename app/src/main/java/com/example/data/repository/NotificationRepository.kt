@@ -65,6 +65,9 @@ class NotificationRepository(
         return isBankingNotification(packageName, appName, text) || isOtpOrSensitive(text)
     }
 
+    private val inMemoryRecentNotifications = java.util.concurrent.ConcurrentHashMap<String, Long>()
+    private val inMemoryIdMap = java.util.concurrent.ConcurrentHashMap<String, Long>()
+
     suspend fun saveNotification(
         key: String,
         packageName: String,
@@ -80,20 +83,38 @@ class NotificationRepository(
         val cleanSubText = subText.trim()
         val cleanBigText = bigText.trim()
 
-        // 1. Debounce rapid OS duplicate flutter (within 2 seconds only)
-        // If Android OS fires multiple events for the exact same physical notification within 2000ms, ignore the flutter.
-        val rapidFlutterCutoff = postTime - 2_000L
+        val dedupeContentKey = "$packageName|$cleanTitle|$cleanText"
+        val now = System.currentTimeMillis()
+
+        // 1. In-memory rapid deduplication (within 10 seconds)
+        val lastSeenTime = inMemoryRecentNotifications[dedupeContentKey]
+        val existingMemId = inMemoryIdMap[dedupeContentKey]
+        if (lastSeenTime != null && (now - lastSeenTime) < 10_000L && existingMemId != null) {
+            // Update timestamp to keep debounce rolling for active spam
+            inMemoryRecentNotifications[dedupeContentKey] = now
+            return@withContext existingMemId
+        }
+
+        // 2. Database duplicate check (within 10 seconds cutoff)
+        val dbCutoff = postTime - 10_000L
         val recentDuplicate = notificationDao.findRecentDuplicate(
             packageName = packageName,
             title = cleanTitle,
             text = cleanText,
-            minTime = rapidFlutterCutoff
+            minTime = dbCutoff
         )
-        if (recentDuplicate != null &&
-            recentDuplicate.encryptedSubText == cleanSubText &&
-            recentDuplicate.encryptedBigText == cleanBigText
-        ) {
-            // Rapid identical repost within 2 seconds - ignore OS flutter
+
+        if (recentDuplicate != null) {
+            // If the incoming notification has richer bigText/subText, update the record
+            if (cleanBigText.length > recentDuplicate.encryptedBigText.length || cleanSubText.length > recentDuplicate.encryptedSubText.length) {
+                val updated = recentDuplicate.copy(
+                    encryptedSubText = if (cleanSubText.isNotEmpty()) cleanSubText else recentDuplicate.encryptedSubText,
+                    encryptedBigText = if (cleanBigText.isNotEmpty()) cleanBigText else recentDuplicate.encryptedBigText
+                )
+                notificationDao.updateNotification(updated)
+            }
+            inMemoryRecentNotifications[dedupeContentKey] = now
+            inMemoryIdMap[dedupeContentKey] = recentDuplicate.id
             return@withContext recentDuplicate.id
         }
 
@@ -155,6 +176,15 @@ class NotificationRepository(
         )
 
         val insertedId = notificationDao.insertNotification(entity)
+
+        // Store into in-memory dedupe caches
+        inMemoryRecentNotifications[dedupeContentKey] = now
+        inMemoryIdMap[dedupeContentKey] = insertedId
+        if (inMemoryRecentNotifications.size > 300) {
+            val cleanupCutoff = now - 30_000L
+            inMemoryRecentNotifications.entries.removeIf { it.value < cleanupCutoff }
+            inMemoryIdMap.entries.removeIf { !inMemoryRecentNotifications.containsKey(it.key) }
+        }
 
         // Meneruskan notifikasi ke Telegram Bot jika diaktifkan
         try {

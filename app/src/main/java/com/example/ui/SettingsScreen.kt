@@ -2,7 +2,6 @@ package com.example.ui
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -16,41 +15,24 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.DeleteSweep
 import androidx.compose.material.icons.filled.Info
-import androidx.compose.material.icons.filled.Key
-import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.NotificationsActive
 import androidx.compose.material.icons.filled.Security
-import androidx.compose.material.icons.filled.Send
-import androidx.compose.material.icons.filled.SmartToy
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
-import android.Manifest
-import androidx.compose.material.icons.filled.Gavel
-import androidx.compose.material.icons.filled.GpsFixed
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.Checkbox
-import androidx.compose.material3.CheckboxDefaults
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.OutlinedTextFieldDefaults
-import androidx.compose.material3.Switch
-import androidx.compose.material3.SwitchDefaults
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -58,7 +40,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -66,186 +47,67 @@ import androidx.compose.ui.unit.sp
 import com.example.ui.theme.MinimalBorder
 import com.example.ui.theme.MinimalCardBackground
 import com.example.ui.theme.MinimalDarkBackground
+import com.example.ui.theme.MinimalEmerald
 import com.example.ui.theme.MinimalLavenderPrimary
 import com.example.ui.theme.MinimalRose
 import com.example.ui.theme.MinimalRoseText
 import com.example.ui.theme.MinimalSurfaceElevated
 import com.example.ui.theme.MinimalTextMuted
 import com.example.ui.theme.MinimalTextPrimary
-
-import com.example.data.filter.AppFilterMode
-import com.example.data.filter.AppItem
-import com.example.ui.components.AppSelectionDialog
-import androidx.compose.material.icons.filled.AccountBalance
-import androidx.compose.material.icons.filled.BatterySaver
-import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.FilterList
-import androidx.compose.material.icons.filled.PlaylistAdd
-import androidx.compose.material.icons.filled.Refresh
-import androidx.compose.material.icons.filled.Shield
-import androidx.compose.material.icons.filled.Tune
-import androidx.compose.material.icons.filled.VpnKey
-import com.example.ui.theme.MinimalEmerald
+import com.example.ui.theme.MinimalTextSecondary
 
 @Composable
 fun SettingsScreen(
     hasNotificationAccess: Boolean,
-    isPinProtectionEnabled: Boolean,
-    isVaultUnlocked: Boolean,
-    // Calculator Disguise
-    isCalculatorDisguiseEnabled: Boolean = false,
-    onToggleCalculatorDisguise: (Boolean) -> Unit = {},
-    // App Filter & Battery Optimization (Whitelist / Blacklist)
-    filterMode: AppFilterMode = AppFilterMode.BLACKLIST,
-    blacklist: Set<String> = emptySet(),
-    whitelist: Set<String> = emptySet(),
-    onSetFilterMode: (AppFilterMode) -> Unit = {},
-    onAddToBlacklist: (String) -> Unit = {},
-    onRemoveFromBlacklist: (String) -> Unit = {},
-    onAddToWhitelist: (String) -> Unit = {},
-    onRemoveFromWhitelist: (String) -> Unit = {},
-    onResetFilterDefaults: () -> Unit = {},
-    onGetInstalledApps: () -> List<AppItem> = { emptyList() },
-    onGetAppName: (String) -> String = { it },
-    // Telegram Bot parameters
-    isTelegramEnabled: Boolean = false,
-    telegramBotToken: String = "",
-    telegramChatId: String = "",
-    telegramExcludeSensitive: Boolean = true,
-    telegramTestStatus: String? = null,
-    isTestingTelegram: Boolean = false,
-    onUpdateTelegramSettings: (enabled: Boolean, token: String, chatId: String, excludeSensitive: Boolean) -> Unit = { _, _, _, _ -> },
-    onSendTelegramTestMessage: () -> Unit = {},
-    onSendLocationToTelegram: ((String) -> Unit) -> Unit = {},
-    // Action handlers
     onOpenNotificationSettings: () -> Unit,
-    onOpenSetPinDialog: () -> Unit,
-    onDisablePin: () -> Unit,
-    onLockVault: () -> Unit,
     onClearAllData: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    var botTokenInput by remember(telegramBotToken) { mutableStateOf(telegramBotToken) }
-    var chatIdInput by remember(telegramChatId) { mutableStateOf(telegramChatId) }
-    var excludeSensitiveInput by remember(telegramExcludeSensitive) { mutableStateOf(telegramExcludeSensitive) }
-    var isGuideVisible by remember { mutableStateOf(false) }
-    var locationStatusMessage by remember { mutableStateOf<String?>(null) }
-    var isFetchingLocation by remember { mutableStateOf(false) }
-
-    // App Filter UI State
-    var showAppSelectionDialog by remember { mutableStateOf(false) }
-    var selectionDialogMode by remember { mutableStateOf(AppFilterMode.BLACKLIST) }
-    var activeFilterTab by remember { mutableStateOf(AppFilterMode.BLACKLIST) }
-    var installedAppsCache by remember { mutableStateOf<List<AppItem>>(emptyList()) }
-
-    val locationPermissionLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.RequestMultiplePermissions()
-    ) { permissions ->
-        val granted = permissions[Manifest.permission.ACCESS_FINE_LOCATION] == true ||
-                permissions[Manifest.permission.ACCESS_COARSE_LOCATION] == true
-        if (granted) {
-            isFetchingLocation = true
-            locationStatusMessage = "Mengambil koordinat GPS lokasi anak..."
-            onSendLocationToTelegram { result ->
-                isFetchingLocation = false
-                locationStatusMessage = result
-            }
-        } else {
-            isFetchingLocation = false
-            locationStatusMessage = "ERROR: Izin akses lokasi ditolak oleh pengguna."
-        }
-    }
+    var showClearDialog by remember { mutableStateOf(false) }
 
     LazyColumn(
         modifier = modifier
             .fillMaxSize()
             .background(MinimalDarkBackground),
-        contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 80.dp),
+        contentPadding = PaddingValues(16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        // Section: Notification Service Permission
+        // Hero Card
         item {
             Card(
-                shape = RoundedCornerShape(20.dp),
                 colors = CardDefaults.cardColors(containerColor = MinimalSurfaceElevated),
+                shape = RoundedCornerShape(16.dp),
                 border = BorderStroke(1.dp, MinimalBorder),
                 modifier = Modifier.fillMaxWidth()
             ) {
-                Column(modifier = Modifier.padding(18.dp)) {
+                Column(modifier = Modifier.padding(16.dp)) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Box(
-                            modifier = Modifier
-                                .size(36.dp)
-                                .clip(CircleShape)
-                                .background(MinimalCardBackground),
-                            contentAlignment = Alignment.Center
+                        Surface(
+                            color = MinimalLavenderPrimary.copy(alpha = 0.15f),
+                            shape = RoundedCornerShape(10.dp),
+                            modifier = Modifier.size(40.dp)
                         ) {
-                            Icon(
-                                imageVector = Icons.Default.NotificationsActive,
-                                contentDescription = null,
-                                tint = MinimalLavenderPrimary,
-                                modifier = Modifier.size(18.dp)
-                            )
+                            Box(contentAlignment = Alignment.Center) {
+                                Icon(
+                                    imageVector = Icons.Default.Settings,
+                                    contentDescription = null,
+                                    tint = MinimalLavenderPrimary,
+                                    modifier = Modifier.size(22.dp)
+                                )
+                            }
                         }
                         Spacer(modifier = Modifier.width(12.dp))
                         Column {
                             Text(
-                                text = "Layanan Perekam Notifikasi",
+                                text = "Sistem & Pemeliharaan",
                                 style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.SemiBold,
+                                fontWeight = FontWeight.Bold,
                                 color = MinimalTextPrimary
                             )
                             Text(
-                                text = "Status izin listener sistem Android",
-                                style = MaterialTheme.typography.labelSmall,
-                                color = MinimalTextMuted
-                            )
-                        }
-                    }
-
-                    if (!hasNotificationAccess) {
-                        Spacer(modifier = Modifier.height(10.dp))
-                        Text(
-                            text = "💡 Petunjuk: Klik 'Izinkan' -> Pilih 'Famly Service' -> Aktifkan Sakelar Akses Notifikasi.",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MinimalLavenderPrimary
-                        )
-                    }
-
-                    Spacer(modifier = Modifier.height(14.dp))
-
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(
-                                imageVector = if (hasNotificationAccess) Icons.Default.CheckCircle else Icons.Default.Warning,
-                                contentDescription = null,
-                                tint = if (hasNotificationAccess) Color(0xFF25D366) else MinimalLavenderPrimary,
-                                modifier = Modifier.size(18.dp)
-                            )
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text(
-                                text = if (hasNotificationAccess) "Izin Aktif Berjalan" else "Izin Belum Diberikan",
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MinimalTextPrimary
-                            )
-                        }
-
-                        Button(
-                            onClick = onOpenNotificationSettings,
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = if (hasNotificationAccess) MinimalCardBackground else MinimalLavenderPrimary,
-                                contentColor = if (hasNotificationAccess) MinimalTextPrimary else Color(0xFF381E72)
-                            ),
-                            shape = RoundedCornerShape(12.dp)
-                        ) {
-                            Text(
-                                text = if (hasNotificationAccess) "Pengaturan" else "Izinkan",
-                                style = MaterialTheme.typography.labelMedium,
-                                fontWeight = FontWeight.Medium
+                                text = "Konfigurasi layanan sistem dan data rekaman",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MinimalTextSecondary
                             )
                         }
                     }
@@ -253,939 +115,197 @@ fun SettingsScreen(
             }
         }
 
-        // Section: Filter & Kontrol Aplikasi (Whitelist & Blacklist - Hemat Baterai)
+        // Notification Access Service Card
         item {
             Card(
-                shape = RoundedCornerShape(20.dp),
-                colors = CardDefaults.cardColors(containerColor = MinimalSurfaceElevated),
+                colors = CardDefaults.cardColors(containerColor = MinimalCardBackground),
+                shape = RoundedCornerShape(16.dp),
                 border = BorderStroke(1.dp, MinimalBorder),
                 modifier = Modifier.fillMaxWidth()
             ) {
-                Column(modifier = Modifier.padding(18.dp)) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Box(
-                            modifier = Modifier
-                                .size(36.dp)
-                                .clip(CircleShape)
-                                .background(MinimalCardBackground),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.BatterySaver,
-                                contentDescription = null,
-                                tint = Color(0xFF10B981),
-                                modifier = Modifier.size(20.dp)
-                            )
-                        }
-                        Spacer(modifier = Modifier.width(12.dp))
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text(
-                                text = "Filter & Kontrol Aplikasi",
-                                style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.SemiBold,
-                                color = MinimalTextPrimary
-                            )
-                            Text(
-                                text = "Whitelist & Blacklist untuk menghemat baterai & privasi",
-                                style = MaterialTheme.typography.labelSmall,
-                                color = MinimalTextMuted
-                            )
-                        }
-                    }
-
-                    Spacer(modifier = Modifier.height(16.dp))
-
-                    // Mode Selection: Blacklist vs Whitelist
+                Column(modifier = Modifier.padding(16.dp)) {
                     Text(
-                        text = "MODE PEREKAMAN NOTIFIKASI:",
+                        text = "LAYANAN PENDENGAR NOTIFIKASI",
                         style = MaterialTheme.typography.labelSmall,
                         fontWeight = FontWeight.Bold,
-                        color = MinimalTextMuted,
-                        fontSize = 11.sp
+                        color = MinimalLavenderPrimary,
+                        letterSpacing = 1.sp
                     )
-
-                    Spacer(modifier = Modifier.height(8.dp))
-
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        // Blacklist Mode Button
-                        val isBlacklistActive = filterMode == AppFilterMode.BLACKLIST
-                        Card(
-                            shape = RoundedCornerShape(12.dp),
-                            colors = CardDefaults.cardColors(
-                                containerColor = if (isBlacklistActive) Color(0xFF2E2028) else MinimalCardBackground
-                            ),
-                            border = BorderStroke(
-                                1.dp,
-                                if (isBlacklistActive) MinimalRoseText else MinimalBorder
-                            ),
-                            modifier = Modifier
-                                .weight(1f)
-                                .clip(RoundedCornerShape(12.dp))
-                                .clickable { onSetFilterMode(AppFilterMode.BLACKLIST) }
-                        ) {
-                            Column(modifier = Modifier.padding(12.dp)) {
-                                Row(verticalAlignment = Alignment.CenterVertically) {
-                                    Text(
-                                        text = "Blacklist Mode",
-                                        style = MaterialTheme.typography.labelMedium,
-                                        fontWeight = FontWeight.Bold,
-                                        color = if (isBlacklistActive) MinimalRoseText else MinimalTextPrimary
-                                    )
-                                }
-                                Spacer(modifier = Modifier.height(4.dp))
-                                Text(
-                                    text = "Rekam semua aplikasi, kecuali yang di-blacklist",
-                                    style = MaterialTheme.typography.labelSmall,
-                                    fontSize = 10.sp,
-                                    color = MinimalTextMuted,
-                                    lineHeight = 13.sp
-                                )
-                            }
-                        }
-
-                        // Whitelist Mode Button
-                        val isWhitelistActive = filterMode == AppFilterMode.WHITELIST
-                        Card(
-                            shape = RoundedCornerShape(12.dp),
-                            colors = CardDefaults.cardColors(
-                                containerColor = if (isWhitelistActive) Color(0xFF1B3B2B) else MinimalCardBackground
-                            ),
-                            border = BorderStroke(
-                                1.dp,
-                                if (isWhitelistActive) MinimalEmerald else MinimalBorder
-                            ),
-                            modifier = Modifier
-                                .weight(1f)
-                                .clip(RoundedCornerShape(12.dp))
-                                .clickable { onSetFilterMode(AppFilterMode.WHITELIST) }
-                        ) {
-                            Column(modifier = Modifier.padding(12.dp)) {
-                                Row(verticalAlignment = Alignment.CenterVertically) {
-                                    Text(
-                                        text = "Whitelist Mode",
-                                        style = MaterialTheme.typography.labelMedium,
-                                        fontWeight = FontWeight.Bold,
-                                        color = if (isWhitelistActive) MinimalEmerald else MinimalTextPrimary
-                                    )
-                                }
-                                Spacer(modifier = Modifier.height(4.dp))
-                                Text(
-                                    text = "Hanya rekam aplikasi whitelist (Hemat Baterai)",
-                                    style = MaterialTheme.typography.labelSmall,
-                                    fontSize = 10.sp,
-                                    color = MinimalTextMuted,
-                                    lineHeight = 13.sp
-                                )
-                            }
-                        }
-                    }
-
-                    Spacer(modifier = Modifier.height(16.dp))
-
-                    // Tab selector for managing list
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clip(RoundedCornerShape(10.dp))
-                            .background(MinimalCardBackground)
-                            .padding(4.dp),
-                        horizontalArrangement = Arrangement.spacedBy(4.dp)
-                    ) {
-                        Button(
-                            onClick = { activeFilterTab = AppFilterMode.BLACKLIST },
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = if (activeFilterTab == AppFilterMode.BLACKLIST) MinimalRose.copy(alpha = 0.8f) else Color.Transparent,
-                                contentColor = if (activeFilterTab == AppFilterMode.BLACKLIST) MinimalRoseText else MinimalTextMuted
-                            ),
-                            shape = RoundedCornerShape(8.dp),
-                            modifier = Modifier.weight(1f),
-                            contentPadding = PaddingValues(vertical = 6.dp)
-                        ) {
-                            Text(
-                                text = "Daftar Blacklist (${blacklist.size})",
-                                style = MaterialTheme.typography.labelSmall,
-                                fontWeight = FontWeight.Bold
-                            )
-                        }
-
-                        Button(
-                            onClick = { activeFilterTab = AppFilterMode.WHITELIST },
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = if (activeFilterTab == AppFilterMode.WHITELIST) MinimalEmerald.copy(alpha = 0.3f) else Color.Transparent,
-                                contentColor = if (activeFilterTab == AppFilterMode.WHITELIST) MinimalEmerald else MinimalTextMuted
-                            ),
-                            shape = RoundedCornerShape(8.dp),
-                            modifier = Modifier.weight(1f),
-                            contentPadding = PaddingValues(vertical = 6.dp)
-                        ) {
-                            Text(
-                                text = "Daftar Whitelist (${whitelist.size})",
-                                style = MaterialTheme.typography.labelSmall,
-                                fontWeight = FontWeight.Bold
-                            )
-                        }
-                    }
 
                     Spacer(modifier = Modifier.height(12.dp))
 
-                    // Active Tab App List
-                    val currentList = if (activeFilterTab == AppFilterMode.BLACKLIST) blacklist else whitelist
-                    val tabThemeColor = if (activeFilterTab == AppFilterMode.BLACKLIST) MinimalRoseText else MinimalEmerald
-
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text(
-                            text = if (activeFilterTab == AppFilterMode.BLACKLIST)
-                                "Aplikasi yang diabaikan (tidak dicatat):"
-                            else
-                                "Aplikasi yang diizinkan untuk dicatat:",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MinimalTextMuted
-                        )
-
-                        TextButton(
-                            onClick = {
-                                selectionDialogMode = activeFilterTab
-                                installedAppsCache = onGetInstalledApps()
-                                showAppSelectionDialog = true
-                            },
-                            contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp)
-                        ) {
-                            Icon(Icons.Default.PlaylistAdd, contentDescription = null, tint = tabThemeColor, modifier = Modifier.size(16.dp))
-                            Spacer(modifier = Modifier.width(4.dp))
-                            Text("+ Tambah", style = MaterialTheme.typography.labelSmall, color = tabThemeColor, fontWeight = FontWeight.Bold)
-                        }
-                    }
-
-                    Spacer(modifier = Modifier.height(6.dp))
-
-                    if (currentList.isEmpty()) {
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clip(RoundedCornerShape(10.dp))
-                                .background(MinimalCardBackground)
-                                .padding(16.dp),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Text(
-                                text = if (activeFilterTab == AppFilterMode.BLACKLIST)
-                                    "Belum ada aplikasi di Blacklist."
-                                else
-                                    "Belum ada aplikasi di Whitelist.",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MinimalTextMuted
-                            )
-                        }
-                    } else {
-                        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                            currentList.forEach { pkg ->
-                                val appName = onGetAppName(pkg)
-                                Card(
-                                    shape = RoundedCornerShape(10.dp),
-                                    colors = CardDefaults.cardColors(containerColor = MinimalCardBackground),
-                                    border = BorderStroke(1.dp, MinimalBorder.copy(alpha = 0.5f)),
-                                    modifier = Modifier.fillMaxWidth()
-                                ) {
-                                    Row(
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .padding(horizontal = 12.dp, vertical = 8.dp),
-                                        verticalAlignment = Alignment.CenterVertically,
-                                        horizontalArrangement = Arrangement.SpaceBetween
-                                    ) {
-                                        Column(modifier = Modifier.weight(1f)) {
-                                            Text(
-                                                text = appName,
-                                                style = MaterialTheme.typography.bodySmall,
-                                                fontWeight = FontWeight.SemiBold,
-                                                color = MinimalTextPrimary
-                                            )
-                                            Text(
-                                                text = pkg,
-                                                style = MaterialTheme.typography.labelSmall,
-                                                fontSize = 9.sp,
-                                                color = MinimalTextMuted
-                                            )
-                                        }
-
-                                        IconButton(
-                                            onClick = {
-                                                if (activeFilterTab == AppFilterMode.BLACKLIST) {
-                                                    onRemoveFromBlacklist(pkg)
-                                                } else {
-                                                    onRemoveFromWhitelist(pkg)
-                                                }
-                                            },
-                                            modifier = Modifier.size(28.dp)
-                                        ) {
-                                            Icon(
-                                                imageVector = Icons.Default.Close,
-                                                contentDescription = "Hapus",
-                                                tint = MinimalTextMuted,
-                                                modifier = Modifier.size(16.dp)
-                                            )
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-
-                    Spacer(modifier = Modifier.height(10.dp))
-
-                    // Reset to Recommended Button
-                    OutlinedButton(
-                        onClick = onResetFilterDefaults,
+                    Surface(
+                        color = MinimalSurfaceElevated,
                         shape = RoundedCornerShape(10.dp),
                         border = BorderStroke(1.dp, MinimalBorder),
                         modifier = Modifier.fillMaxWidth()
                     ) {
-                        Icon(Icons.Default.Refresh, contentDescription = null, tint = MinimalTextMuted, modifier = Modifier.size(14.dp))
-                        Spacer(modifier = Modifier.width(6.dp))
+                        Row(
+                            modifier = Modifier.padding(12.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Icon(
+                                    imageVector = if (hasNotificationAccess) Icons.Default.CheckCircle else Icons.Default.Warning,
+                                    contentDescription = null,
+                                    tint = if (hasNotificationAccess) MinimalEmerald else MinimalRoseText,
+                                    modifier = Modifier.size(20.dp)
+                                )
+                                Spacer(modifier = Modifier.width(10.dp))
+                                Column {
+                                    Text(
+                                        text = "Akses Notifikasi Android",
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        fontWeight = FontWeight.Medium,
+                                        color = MinimalTextPrimary
+                                    )
+                                    Text(
+                                        text = if (hasNotificationAccess) "Layanan Berjalan Aktif" else "Izin Belum Aktif",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = if (hasNotificationAccess) MinimalEmerald else MinimalRoseText
+                                    )
+                                }
+                            }
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    Button(
+                        onClick = onOpenNotificationSettings,
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = MinimalLavenderPrimary,
+                            contentColor = Color(0xFF381E72)
+                        ),
+                        shape = RoundedCornerShape(10.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Icon(Icons.Default.NotificationsActive, contentDescription = null, modifier = Modifier.size(16.dp))
+                        Spacer(modifier = Modifier.width(8.dp))
                         Text(
-                            text = "Setel Ulang ke Rekomendasi Hemat Baterai",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MinimalTextMuted
+                            text = if (hasNotificationAccess) "Cek Pengaturan Izin Notifikasi" else "Buka Pengaturan & Izinkan",
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Bold
                         )
                     }
                 }
             }
         }
 
-        // Section: Otomatis Enkripsi Perbankan & OTP
+        // Database Maintenance & Clear Card
         item {
             Card(
-                shape = RoundedCornerShape(20.dp),
-                colors = CardDefaults.cardColors(containerColor = MinimalSurfaceElevated),
-                border = BorderStroke(1.dp, Color(0xFFF59E0B).copy(alpha = 0.4f)),
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Column(modifier = Modifier.padding(18.dp)) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Box(
-                            modifier = Modifier
-                                .size(36.dp)
-                                .clip(CircleShape)
-                                .background(Color(0xFF332308)),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.AccountBalance,
-                                contentDescription = null,
-                                tint = Color(0xFFF59E0B),
-                                modifier = Modifier.size(18.dp)
-                            )
-                        }
-                        Spacer(modifier = Modifier.width(12.dp))
-                        Column(modifier = Modifier.weight(1f)) {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Text(
-                                    text = "Enkripsi Otomatis Bank & OTP",
-                                    style = MaterialTheme.typography.titleMedium,
-                                    fontWeight = FontWeight.SemiBold,
-                                    color = MinimalTextPrimary
-                                )
-                            }
-                            Text(
-                                text = "Keamanan Finansial Hardware Keystore",
-                                style = MaterialTheme.typography.labelSmall,
-                                color = Color(0xFFF59E0B)
-                            )
-                        }
-
-                        Box(
-                            modifier = Modifier
-                                .clip(RoundedCornerShape(6.dp))
-                                .background(Color(0xFF1B3B2B))
-                                .padding(horizontal = 8.dp, vertical = 4.dp)
-                        ) {
-                            Text(
-                                text = "AKTIF",
-                                style = MaterialTheme.typography.labelSmall,
-                                fontWeight = FontWeight.Bold,
-                                color = MinimalEmerald,
-                                fontSize = 10.sp
-                            )
-                        }
-                    }
-
-                    Spacer(modifier = Modifier.height(12.dp))
-
-                    Text(
-                        text = "🔒 Perlindungan Privasi Finansial Otomatis:",
-                        style = MaterialTheme.typography.labelMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = MinimalTextPrimary
-                    )
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Text(
-                        text = "• Seluruh notifikasi transaksi bank (BCA, Mandiri, BRI, BNI, CIMB, Jenius, Jago, dll.), dompet digital (DANA, GoPay, OVO, ShopeePay), serta SMS kode OTP/PIN/Verifikasi otomatis dienkripsi dengan standar AES-256 GCM sebelum disimpan ke penyimpanan lokal.\n" +
-                                "• Kunci enkripsi diamankan oleh Android Hardware Keystore.\n" +
-                                "• Saat Kunci PIN aktif dan Vault terkunci, isi pesan perbankan & OTP disensor secara aman dari pandangan siapapun.",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MinimalTextMuted,
-                        lineHeight = 18.sp
-                    )
-                }
-            }
-        }
-
-        // Section: Telegram Bot Integration
-        item {
-            Card(
-                shape = RoundedCornerShape(20.dp),
-                colors = CardDefaults.cardColors(containerColor = MinimalSurfaceElevated),
+                colors = CardDefaults.cardColors(containerColor = MinimalCardBackground),
+                shape = RoundedCornerShape(16.dp),
                 border = BorderStroke(1.dp, MinimalBorder),
                 modifier = Modifier.fillMaxWidth()
             ) {
-                Column(modifier = Modifier.padding(18.dp)) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Box(
-                            modifier = Modifier
-                                .size(36.dp)
-                                .clip(CircleShape)
-                                .background(MinimalCardBackground),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.SmartToy,
-                                contentDescription = null,
-                                tint = Color(0xFF2AABEE), // Telegram Blue Accent
-                                modifier = Modifier.size(18.dp)
-                            )
-                        }
-                        Spacer(modifier = Modifier.width(12.dp))
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text(
-                                text = "Penerusan Bot Telegram",
-                                style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.SemiBold,
-                                color = MinimalTextPrimary
-                            )
-                            Text(
-                                text = "Kirim notifikasi otomatis ke bot Telegram Anda",
-                                style = MaterialTheme.typography.labelSmall,
-                                color = MinimalTextMuted
-                            )
-                        }
-                        Switch(
-                            checked = isTelegramEnabled,
-                            onCheckedChange = { enabled ->
-                                onUpdateTelegramSettings(enabled, botTokenInput, chatIdInput, excludeSensitiveInput)
-                            },
-                            colors = SwitchDefaults.colors(
-                                checkedThumbColor = MinimalDarkBackground,
-                                checkedTrackColor = Color(0xFF2AABEE),
-                                uncheckedThumbColor = MinimalTextMuted,
-                                uncheckedTrackColor = MinimalCardBackground
-                            )
-                        )
-                    }
-
-                    Spacer(modifier = Modifier.height(16.dp))
-
-                    // Bot Token Field
+                Column(modifier = Modifier.padding(16.dp)) {
                     Text(
-                        text = "Bot Token Telegram",
-                        style = MaterialTheme.typography.labelMedium,
-                        fontWeight = FontWeight.SemiBold,
-                        color = MinimalTextPrimary
-                    )
-                    Spacer(modifier = Modifier.height(6.dp))
-                    OutlinedTextField(
-                        value = botTokenInput,
-                        onValueChange = {
-                            botTokenInput = it
-                            onUpdateTelegramSettings(isTelegramEnabled, it, chatIdInput, excludeSensitiveInput)
-                        },
-                        placeholder = { Text("Contoh: 123456789:ABCdefGhIJKlmNoPQRsTUVwxyZ", color = MinimalTextMuted) },
-                        singleLine = true,
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = Color(0xFF2AABEE),
-                            unfocusedBorderColor = MinimalBorder,
-                            focusedContainerColor = MinimalCardBackground,
-                            unfocusedContainerColor = MinimalCardBackground,
-                            focusedTextColor = MinimalTextPrimary,
-                            unfocusedTextColor = MinimalTextPrimary
-                        ),
-                        shape = RoundedCornerShape(12.dp),
-                        modifier = Modifier.fillMaxWidth()
+                        text = "MANAJEMEN PENYIMPANAN DATA",
+                        style = MaterialTheme.typography.labelSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = MinimalLavenderPrimary,
+                        letterSpacing = 1.sp
                     )
 
                     Spacer(modifier = Modifier.height(12.dp))
 
-                    // Chat ID Field
                     Text(
-                        text = "Telegram Chat ID / Channel ID",
-                        style = MaterialTheme.typography.labelMedium,
-                        fontWeight = FontWeight.SemiBold,
-                        color = MinimalTextPrimary
+                        text = "Data rekaman disimpan secara lokal di memori internal HP anak dalam database Room yang terenkripsi.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MinimalTextSecondary,
+                        lineHeight = 16.sp
                     )
-                    Spacer(modifier = Modifier.height(6.dp))
-                    OutlinedTextField(
-                        value = chatIdInput,
-                        onValueChange = {
-                            chatIdInput = it
-                            onUpdateTelegramSettings(isTelegramEnabled, botTokenInput, it, excludeSensitiveInput)
-                        },
-                        placeholder = { Text("Contoh: 987654321 atau @nama_channel", color = MinimalTextMuted) },
-                        singleLine = true,
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = Color(0xFF2AABEE),
-                            unfocusedBorderColor = MinimalBorder,
-                            focusedContainerColor = MinimalCardBackground,
-                            unfocusedContainerColor = MinimalCardBackground,
-                            focusedTextColor = MinimalTextPrimary,
-                            unfocusedTextColor = MinimalTextPrimary
-                        ),
-                        shape = RoundedCornerShape(12.dp),
-                        modifier = Modifier.fillMaxWidth()
-                    )
-
-                    Spacer(modifier = Modifier.height(12.dp))
-
-                    // Privacy option: Exclude Sensitive OTP/Passwords
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Checkbox(
-                            checked = excludeSensitiveInput,
-                            onCheckedChange = { checked ->
-                                excludeSensitiveInput = checked
-                                onUpdateTelegramSettings(isTelegramEnabled, botTokenInput, chatIdInput, checked)
-                            },
-                            colors = CheckboxDefaults.colors(
-                                checkedColor = Color(0xFF2AABEE),
-                                uncheckedColor = MinimalTextMuted
-                            )
-                        )
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Text(
-                            text = "Abaikan OTP / Kode Sandi Sensitif (Disarankan)",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MinimalTextPrimary
-                        )
-                    }
 
                     Spacer(modifier = Modifier.height(14.dp))
 
-                    // Test Telegram Bot Button
-                    Button(
-                        onClick = onSendTelegramTestMessage,
-                        enabled = !isTestingTelegram && botTokenInput.isNotBlank() && chatIdInput.isNotBlank(),
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = Color(0xFF2AABEE),
-                            contentColor = Color.White,
-                            disabledContainerColor = MinimalCardBackground,
-                            disabledContentColor = MinimalTextMuted
-                        ),
-                        shape = RoundedCornerShape(12.dp),
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        if (isTestingTelegram) {
-                            CircularProgressIndicator(
-                                modifier = Modifier.size(18.dp),
-                                color = Color.White,
-                                strokeWidth = 2.dp
-                            )
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text("Mengirim Tes...", style = MaterialTheme.typography.labelMedium)
-                        } else {
-                            Icon(Icons.Default.Send, contentDescription = null, modifier = Modifier.size(16.dp))
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text("Tes Kirim Pesan ke Telegram", style = MaterialTheme.typography.labelMedium)
-                        }
-                    }
-
-                    Spacer(modifier = Modifier.height(8.dp))
-
-                    // Send Location Button
                     OutlinedButton(
-                        onClick = {
-                            locationPermissionLauncher.launch(
-                                arrayOf(
-                                    Manifest.permission.ACCESS_FINE_LOCATION,
-                                    Manifest.permission.ACCESS_COARSE_LOCATION
-                                )
-                            )
-                        },
-                        enabled = !isFetchingLocation && isTelegramEnabled && botTokenInput.isNotBlank() && chatIdInput.isNotBlank(),
-                        shape = RoundedCornerShape(12.dp),
-                        border = BorderStroke(1.dp, Color(0xFF38BDF8)),
-                        colors = ButtonDefaults.outlinedButtonColors(contentColor = Color(0xFF38BDF8)),
-                        modifier = Modifier.fillMaxWidth()
+                        onClick = { showClearDialog = true },
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = ButtonDefaults.outlinedButtonColors(contentColor = MinimalRoseText),
+                        border = BorderStroke(1.dp, MinimalRose),
+                        shape = RoundedCornerShape(10.dp)
                     ) {
-                        if (isFetchingLocation) {
-                            CircularProgressIndicator(
-                                modifier = Modifier.size(18.dp),
-                                color = Color(0xFF38BDF8),
-                                strokeWidth = 2.dp
-                            )
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text("Mengambil Lokasi...", style = MaterialTheme.typography.labelMedium)
-                        } else {
-                            Icon(Icons.Default.GpsFixed, contentDescription = null, modifier = Modifier.size(16.dp))
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text("📍 Kirim Lokasi GPS Terkini ke Telegram", style = MaterialTheme.typography.labelMedium)
-                        }
-                    }
-
-                    // Location Status Banner
-                    if (locationStatusMessage != null) {
-                        Spacer(modifier = Modifier.height(10.dp))
-                        val isLocSuccess = locationStatusMessage!!.startsWith("SUCCESS")
-                        Card(
-                            shape = RoundedCornerShape(10.dp),
-                            colors = CardDefaults.cardColors(
-                                containerColor = if (isLocSuccess) Color(0xFF1B3B2B) else Color(0xFF3D1E24)
-                            ),
-                            border = BorderStroke(
-                                1.dp,
-                                if (isLocSuccess) Color(0xFF25D366) else MinimalRoseText
-                            ),
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Text(
-                                text = locationStatusMessage!!,
-                                style = MaterialTheme.typography.bodySmall,
-                                color = if (isLocSuccess) Color(0xFF80FFB4) else Color(0xFFFFB4B4),
-                                modifier = Modifier.padding(12.dp)
-                            )
-                        }
-                    }
-
-                    // Test Status Banner
-                    if (telegramTestStatus != null) {
-                        Spacer(modifier = Modifier.height(10.dp))
-                        val isSuccess = telegramTestStatus.startsWith("SUCCESS")
-                        Card(
-                            shape = RoundedCornerShape(10.dp),
-                            colors = CardDefaults.cardColors(
-                                containerColor = if (isSuccess) Color(0xFF1B3B2B) else Color(0xFF3D1E24)
-                            ),
-                            border = BorderStroke(
-                                1.dp,
-                                if (isSuccess) Color(0xFF25D366) else MinimalRoseText
-                            ),
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Text(
-                                text = telegramTestStatus,
-                                style = MaterialTheme.typography.bodySmall,
-                                color = if (isSuccess) Color(0xFF80FFB4) else Color(0xFFFFB4B4),
-                                modifier = Modifier.padding(12.dp)
-                            )
-                        }
-                    }
-
-                    Spacer(modifier = Modifier.height(10.dp))
-
-                    // Expandable Help Guide
-                    OutlinedButton(
-                        onClick = { isGuideVisible = !isGuideVisible },
-                        shape = RoundedCornerShape(10.dp),
-                        border = BorderStroke(1.dp, MinimalBorder),
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Icon(Icons.Default.Info, contentDescription = null, tint = MinimalTextMuted, modifier = Modifier.size(16.dp))
-                        Spacer(modifier = Modifier.width(6.dp))
-                        Text(
-                            text = if (isGuideVisible) "Sembunyikan Panduan Bot" else "Cara Membuat Bot & Chat ID",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MinimalTextMuted
-                        )
-                    }
-
-                    if (isGuideVisible) {
-                        Spacer(modifier = Modifier.height(10.dp))
-                        Card(
-                            shape = RoundedCornerShape(12.dp),
-                            colors = CardDefaults.cardColors(containerColor = MinimalCardBackground),
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Column(modifier = Modifier.padding(12.dp)) {
-                                Text(
-                                    text = "📖 Langkah Mudah Menghubungkan Telegram:",
-                                    style = MaterialTheme.typography.labelMedium,
-                                    fontWeight = FontWeight.Bold,
-                                    color = Color(0xFF2AABEE)
-                                )
-                                Spacer(modifier = Modifier.height(6.dp))
-                                Text(
-                                    text = "1. Buka Telegram & cari @BotFather -> kirim /newbot untuk buat bot.\n" +
-                                            "2. Salin API Token ke kolom Bot Token di atas.\n" +
-                                            "3. Cari @userinfobot -> kirim /start untuk dapatkan Chat ID Anda.\n" +
-                                            "4. Salin Chat ID ke kolom di atas lalu simpan & uji coba.\n\n" +
-                                            "⚙️ DUKUNGAN BACKGROUND 24/7:\n" +
-                                            "• Perintah /lokasi, /ping, /help kini otomatis berjalan di latar belakang melalui Famly Background Listener Service.\n" +
-                                            "• Penting: Pastikan 'Akses Notifikasi' aktif dan izinkan 'Mulai Otomatis / Tanpa Batasan Baterai' di Pengaturan HP anak (Xiaomi/Oppo/Vivo/Samsung) agar Android tidak menghentikan layanan latar belakang.",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MinimalTextPrimary,
-                                    lineHeight = MaterialTheme.typography.bodySmall.lineHeight * 1.3f
-                                )
-                            }
-                        }
+                        Icon(Icons.Default.DeleteSweep, contentDescription = null, modifier = Modifier.size(16.dp))
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("Hapus Semua Riwayat Notifikasi", fontSize = 12.sp)
                     }
                 }
             }
         }
 
-        // Section: Kunci Aplikasi Menggunakan PIN
+        // App Information
         item {
             Card(
-                shape = RoundedCornerShape(20.dp),
                 colors = CardDefaults.cardColors(containerColor = MinimalSurfaceElevated),
+                shape = RoundedCornerShape(16.dp),
                 border = BorderStroke(1.dp, MinimalBorder),
                 modifier = Modifier.fillMaxWidth()
             ) {
-                Column(modifier = Modifier.padding(18.dp)) {
+                Column(modifier = Modifier.padding(16.dp)) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Box(
-                            modifier = Modifier
-                                .size(36.dp)
-                                .clip(CircleShape)
-                                .background(MinimalCardBackground),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Security,
-                                contentDescription = null,
-                                tint = MinimalLavenderPrimary,
-                                modifier = Modifier.size(18.dp)
-                            )
-                        }
-                        Spacer(modifier = Modifier.width(12.dp))
+                        Icon(
+                            imageVector = Icons.Default.Info,
+                            contentDescription = null,
+                            tint = MinimalLavenderPrimary,
+                            modifier = Modifier.size(20.dp)
+                        )
+                        Spacer(modifier = Modifier.width(10.dp))
                         Column {
                             Text(
-                                text = "Kunci Aplikasi (PIN)",
-                                style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.SemiBold,
-                                color = MinimalTextPrimary
-                            )
-                            Text(
-                                text = "Minta PIN saat membuka atau kembali ke aplikasi",
-                                style = MaterialTheme.typography.labelSmall,
-                                color = MinimalTextMuted
-                            )
-                        }
-                    }
-
-                    Spacer(modifier = Modifier.height(16.dp))
-
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text(
-                                text = "Kunci PIN Aplikasi",
+                                text = "Famly Parental Control & Monitor",
                                 style = MaterialTheme.typography.bodyMedium,
-                                fontWeight = FontWeight.SemiBold,
+                                fontWeight = FontWeight.Bold,
                                 color = MinimalTextPrimary
                             )
                             Text(
-                                text = if (isPinProtectionEnabled) "PIN 4-digit aktif melindungi aplikasi" else "Proteksi PIN dinonaktifkan",
-                                style = MaterialTheme.typography.labelSmall,
+                                text = "Versi 1.4.0 • Keamanan & Privasi Terjamin",
+                                style = MaterialTheme.typography.bodySmall,
                                 color = MinimalTextMuted
                             )
                         }
-
-                        Switch(
-                            checked = isPinProtectionEnabled,
-                            onCheckedChange = { enabled ->
-                                if (enabled) {
-                                    onOpenSetPinDialog()
-                                } else {
-                                    onDisablePin()
-                                }
-                            },
-                            colors = SwitchDefaults.colors(
-                                checkedThumbColor = MinimalDarkBackground,
-                                checkedTrackColor = MinimalLavenderPrimary,
-                                uncheckedThumbColor = MinimalTextMuted,
-                                uncheckedTrackColor = MinimalCardBackground
-                            )
-                        )
                     }
-
-                    if (isPinProtectionEnabled) {
-                        Spacer(modifier = Modifier.height(14.dp))
-
-                        // Calculator Disguise Switch
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Column(modifier = Modifier.weight(1f)) {
-                                Text(
-                                    text = "Penyamaran Ikon Kalkulator",
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    fontWeight = FontWeight.SemiBold,
-                                    color = MinimalTextPrimary
-                                )
-                                Text(
-                                    text = if (isCalculatorDisguiseEnabled)
-                                        "Aktif - Aplikasi menyamar sebagai Kalkulator"
-                                    else
-                                        "Ubah ikon & layar pembuka menjadi Kalkulator rahasia",
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = MinimalTextMuted
-                                )
-                            }
-
-                            Switch(
-                                checked = isCalculatorDisguiseEnabled,
-                                onCheckedChange = { onToggleCalculatorDisguise(it) },
-                                colors = SwitchDefaults.colors(
-                                    checkedThumbColor = MinimalDarkBackground,
-                                    checkedTrackColor = MinimalLavenderPrimary,
-                                    uncheckedThumbColor = MinimalTextMuted,
-                                    uncheckedTrackColor = MinimalCardBackground
-                                )
-                            )
-                        }
-
-                        Spacer(modifier = Modifier.height(14.dp))
-
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
-                        ) {
-                            OutlinedButton(
-                                onClick = onOpenSetPinDialog,
-                                modifier = Modifier.weight(1f),
-                                shape = RoundedCornerShape(12.dp),
-                                border = BorderStroke(1.dp, MinimalBorder)
-                            ) {
-                                Icon(Icons.Default.Key, contentDescription = null, tint = MinimalTextPrimary, modifier = Modifier.size(16.dp))
-                                Spacer(modifier = Modifier.width(6.dp))
-                                Text("Ubah PIN", style = MaterialTheme.typography.labelMedium, color = MinimalTextPrimary)
-                            }
-
-                            if (isVaultUnlocked) {
-                                OutlinedButton(
-                                    onClick = onLockVault,
-                                    modifier = Modifier.weight(1f),
-                                    shape = RoundedCornerShape(12.dp),
-                                    border = BorderStroke(1.dp, MinimalBorder)
-                                ) {
-                                    Icon(Icons.Default.Lock, contentDescription = null, tint = MinimalLavenderPrimary, modifier = Modifier.size(16.dp))
-                                    Spacer(modifier = Modifier.width(6.dp))
-                                    Text("Kunci Sekarang", style = MaterialTheme.typography.labelMedium, color = MinimalLavenderPrimary)
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
-
-        // Section: Area Hapus Data
-        item {
-            Card(
-                shape = RoundedCornerShape(20.dp),
-                colors = CardDefaults.cardColors(containerColor = MinimalSurfaceElevated),
-                border = BorderStroke(1.dp, MinimalRose.copy(alpha = 0.5f)),
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Column(modifier = Modifier.padding(18.dp)) {
-                    Text(
-                        text = "Area Hapus Data",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.SemiBold,
-                        color = MinimalRoseText
-                    )
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Text(
-                        text = "Semua riwayat notifikasi lokal akan dihapus secara permanen.",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MinimalTextMuted
-                    )
-                    Spacer(modifier = Modifier.height(14.dp))
-
-                    Button(
-                        onClick = onClearAllData,
-                        colors = ButtonDefaults.buttonColors(containerColor = MinimalRose),
-                        shape = RoundedCornerShape(12.dp),
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Icon(Icons.Default.DeleteSweep, contentDescription = null, tint = MinimalRoseText, modifier = Modifier.size(18.dp))
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text("Hapus Seluruh Database Notifikasi", style = MaterialTheme.typography.labelMedium, color = MinimalRoseText)
-                    }
-                }
-            }
-        }
-
-        // Section: Sanggahan Hukum & Bebas Tuntutan
-        item {
-            Card(
-                shape = RoundedCornerShape(20.dp),
-                colors = CardDefaults.cardColors(containerColor = MinimalSurfaceElevated),
-                border = BorderStroke(1.dp, Color(0xFF381E72)),
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Column(modifier = Modifier.padding(18.dp)) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Box(
-                            modifier = Modifier
-                                .size(32.dp)
-                                .background(Color(0xFF381E72), CircleShape),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Gavel,
-                                contentDescription = null,
-                                tint = MinimalLavenderPrimary,
-                                modifier = Modifier.size(18.dp)
-                            )
-                        }
-                        Spacer(modifier = Modifier.width(12.dp))
-                        Text(
-                            text = "Sanggahan Hukum & Bebas Tuntutan",
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.SemiBold,
-                            color = MinimalTextPrimary
-                        )
-                    }
-                    Spacer(modifier = Modifier.height(10.dp))
-                    Text(
-                        text = "DISCLAIMER PENGEMBANG: Aplikasi Famly dirancang khusus sebagai sarana Parental Control dan pemantauan keselamatan anak berbasis persetujuan keluarga. Pengembang aplikasi Famly sepenuhnya dibebaskan dari segala bentuk tuntutan hukum, tanggung jawab pidana maupun perdata, serta kerugian langsung/tidak langsung yang timbul akibat penyalahgunaan, pemantauan tanpa izin, peretasan, atau pelanggaran privasi oleh pengguna.",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MinimalTextMuted,
-                        lineHeight = 18.sp
-                    )
                 }
             }
         }
     }
 
-    if (showAppSelectionDialog) {
-        val existingSet = if (selectionDialogMode == AppFilterMode.BLACKLIST) blacklist else whitelist
-        AppSelectionDialog(
-            targetMode = selectionDialogMode,
-            existingPackages = existingSet,
-            installedApps = installedAppsCache,
-            onAddApp = { pkg ->
-                if (selectionDialogMode == AppFilterMode.BLACKLIST) {
-                    onAddToBlacklist(pkg)
-                } else {
-                    onAddToWhitelist(pkg)
+    if (showClearDialog) {
+        androidx.compose.material3.AlertDialog(
+            onDismissRequest = { showClearDialog = false },
+            title = {
+                Text(
+                    text = "Hapus Semua Data?",
+                    fontWeight = FontWeight.Bold,
+                    color = MinimalTextPrimary
+                )
+            },
+            text = {
+                Text(
+                    text = "Tindakan ini akan menghapus seluruh rekaman notifikasi dari database lokal HP anak secara permanen.",
+                    color = MinimalTextSecondary
+                )
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        onClearAllData()
+                        showClearDialog = false
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = MinimalRose, contentColor = MinimalRoseText)
+                ) {
+                    Text("Hapus Semua")
                 }
             },
-            onDismiss = { showAppSelectionDialog = false }
+            dismissButton = {
+                androidx.compose.material3.TextButton(onClick = { showClearDialog = false }) {
+                    Text("Batal", color = MinimalTextMuted)
+                }
+            },
+            containerColor = MinimalSurfaceElevated,
+            shape = RoundedCornerShape(16.dp)
         )
     }
 }

@@ -256,6 +256,8 @@ class TelegramBotManager(private val context: Context) {
         }
     }
 
+    private val recentSentNotifications = java.util.concurrent.ConcurrentHashMap<String, Long>()
+
     suspend fun sendNotification(
         appName: String,
         title: String,
@@ -273,6 +275,22 @@ class TelegramBotManager(private val context: Context) {
         if (isSensitive && isExcludeSensitive()) {
             Log.d("TelegramBotManager", "Notifikasi sensitif diabaikan sesuai preferensi pengguna.")
             return@withContext false
+        }
+
+        // Deduplication filter: prevent identical messages within 12 seconds
+        val dedupeKey = "${appName.trim()}|${title.trim()}|${text.trim()}"
+        val now = System.currentTimeMillis()
+        val lastSent = recentSentNotifications[dedupeKey]
+        if (lastSent != null && (now - lastSent) < 12_000L) {
+            Log.d("TelegramBotManager", "Duplikasi pesan Telegram dicegah untuk: $dedupeKey")
+            return@withContext true
+        }
+        recentSentNotifications[dedupeKey] = now
+
+        // Clean up old cache entries periodically
+        if (recentSentNotifications.size > 200) {
+            val cutoff = now - 60_000L
+            recentSentNotifications.entries.removeIf { it.value < cutoff }
         }
 
         val timeStr = SimpleDateFormat("HH:mm:ss - dd MMM yyyy", Locale.getDefault()).format(Date(postTime))

@@ -18,11 +18,14 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Analytics
 import androidx.compose.material.icons.filled.Category
 import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.FilterList
+import androidx.compose.material.icons.filled.LocationOn
+import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Security
+import androidx.compose.material.icons.filled.Send
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Shield
 import androidx.compose.material.icons.filled.Warning
@@ -38,13 +41,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.data.model.NotificationCategory
 import com.example.ui.NavDestination
 import com.example.ui.theme.MinimalBorder
-import com.example.ui.theme.MinimalCardBackground
 import com.example.ui.theme.MinimalDarkBackground
 import com.example.ui.theme.MinimalLavenderPrimary
 import com.example.ui.theme.MinimalSurfaceElevated
@@ -101,11 +104,11 @@ fun AppDrawerContent(
                         Text(
                             text = "Famly",
                             style = MaterialTheme.typography.titleLarge,
-                            fontWeight = FontWeight.Medium,
+                            fontWeight = FontWeight.Bold,
                             color = MinimalTextPrimary
                         )
                         Text(
-                            text = "Parental Control & Activity Monitor",
+                            text = "Parental Control & Monitor",
                             style = MaterialTheme.typography.labelSmall,
                             color = MinimalTextMuted
                         )
@@ -144,86 +147,10 @@ fun AppDrawerContent(
 
         Spacer(modifier = Modifier.height(12.dp))
 
-        // Main Navigation Items
+        // Group 1: Monitoring & Activity
         Column(modifier = Modifier.padding(horizontal = 12.dp)) {
             Text(
-                text = "NAVIGASI",
-                style = MaterialTheme.typography.labelSmall,
-                color = MinimalTextMuted,
-                fontWeight = FontWeight.Bold,
-                letterSpacing = 1.sp,
-                modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp)
-            )
-
-            NavigationDrawerItem(
-                label = { Text("Semua Notifikasi", fontWeight = FontWeight.Medium) },
-                icon = { Icon(Icons.Default.Notifications, contentDescription = null) },
-                selected = currentDestination == NavDestination.ALL_NOTIFICATIONS,
-                onClick = {
-                    onSelectDestination(NavDestination.ALL_NOTIFICATIONS)
-                    onCloseDrawer()
-                },
-                colors = NavigationDrawerItemDefaults.colors(
-                    selectedContainerColor = MinimalSurfaceElevated,
-                    selectedIconColor = MinimalLavenderPrimary,
-                    selectedTextColor = MinimalLavenderPrimary,
-                    unselectedContainerColor = Color.Transparent,
-                    unselectedIconColor = MinimalTextSecondary,
-                    unselectedTextColor = MinimalTextSecondary
-                ),
-                shape = RoundedCornerShape(12.dp),
-                modifier = Modifier.padding(vertical = 2.dp)
-            )
-
-            NavigationDrawerItem(
-                label = { Text("Kategori & Aplikasi", fontWeight = FontWeight.Medium) },
-                icon = { Icon(Icons.Default.Category, contentDescription = null) },
-                selected = currentDestination == NavDestination.CATEGORIES,
-                onClick = {
-                    onSelectDestination(NavDestination.CATEGORIES)
-                    onCloseDrawer()
-                },
-                colors = NavigationDrawerItemDefaults.colors(
-                    selectedContainerColor = MinimalSurfaceElevated,
-                    selectedIconColor = MinimalLavenderPrimary,
-                    selectedTextColor = MinimalLavenderPrimary,
-                    unselectedContainerColor = Color.Transparent,
-                    unselectedIconColor = MinimalTextSecondary,
-                    unselectedTextColor = MinimalTextSecondary
-                ),
-                shape = RoundedCornerShape(12.dp),
-                modifier = Modifier.padding(vertical = 2.dp)
-            )
-
-            NavigationDrawerItem(
-                label = { Text("Pengaturan", fontWeight = FontWeight.Medium) },
-                icon = { Icon(Icons.Default.Settings, contentDescription = null) },
-                selected = currentDestination == NavDestination.SETTINGS,
-                onClick = {
-                    onSelectDestination(NavDestination.SETTINGS)
-                    onCloseDrawer()
-                },
-                colors = NavigationDrawerItemDefaults.colors(
-                    selectedContainerColor = MinimalSurfaceElevated,
-                    selectedIconColor = MinimalLavenderPrimary,
-                    selectedTextColor = MinimalLavenderPrimary,
-                    unselectedContainerColor = Color.Transparent,
-                    unselectedIconColor = MinimalTextSecondary,
-                    unselectedTextColor = MinimalTextSecondary
-                ),
-                shape = RoundedCornerShape(12.dp),
-                modifier = Modifier.padding(vertical = 2.dp)
-            )
-        }
-
-        Spacer(modifier = Modifier.height(12.dp))
-        HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp), color = MinimalBorder)
-        Spacer(modifier = Modifier.height(12.dp))
-
-        // Quick Category Filter Section
-        Column(modifier = Modifier.padding(horizontal = 12.dp)) {
-            Text(
-                text = "FILTER KATEGORI",
+                text = "PEMANTAUAN & RIWAYAT",
                 style = MaterialTheme.typography.labelSmall,
                 color = MinimalTextMuted,
                 fontWeight = FontWeight.Bold,
@@ -231,7 +158,109 @@ fun AppDrawerContent(
                 modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
             )
 
-            NotificationCategory.entries.take(5).forEach { cat ->
+            DrawerItemRow(
+                label = "Semua Notifikasi",
+                icon = Icons.Default.Notifications,
+                selected = currentDestination == NavDestination.ALL_NOTIFICATIONS,
+                onClick = {
+                    onSelectDestination(NavDestination.ALL_NOTIFICATIONS)
+                    onCloseDrawer()
+                }
+            )
+
+            DrawerItemRow(
+                label = "Kategori & Statistik",
+                icon = Icons.Default.Category,
+                selected = currentDestination == NavDestination.CATEGORIES,
+                onClick = {
+                    onSelectDestination(NavDestination.CATEGORIES)
+                    onCloseDrawer()
+                }
+            )
+        }
+
+        Spacer(modifier = Modifier.height(8.dp))
+        HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp), color = MinimalBorder)
+        Spacer(modifier = Modifier.height(8.dp))
+
+        // Group 2: Modul Pengaturan & Kontrol (Dipisah & Dirapikan)
+        Column(modifier = Modifier.padding(horizontal = 12.dp)) {
+            Text(
+                text = "PENGATURAN & KONTROL",
+                style = MaterialTheme.typography.labelSmall,
+                color = MinimalTextMuted,
+                fontWeight = FontWeight.Bold,
+                letterSpacing = 1.sp,
+                modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
+            )
+
+            DrawerItemRow(
+                label = "Filter Aplikasi & Baterai",
+                icon = Icons.Default.FilterList,
+                selected = currentDestination == NavDestination.APP_FILTER,
+                onClick = {
+                    onSelectDestination(NavDestination.APP_FILTER)
+                    onCloseDrawer()
+                }
+            )
+
+            DrawerItemRow(
+                label = "Bot Telegram & Remote",
+                icon = Icons.Default.Send,
+                selected = currentDestination == NavDestination.TELEGRAM,
+                onClick = {
+                    onSelectDestination(NavDestination.TELEGRAM)
+                    onCloseDrawer()
+                }
+            )
+
+            DrawerItemRow(
+                label = "Lokasi & GPS HP Anak",
+                icon = Icons.Default.LocationOn,
+                selected = currentDestination == NavDestination.LOCATION,
+                onClick = {
+                    onSelectDestination(NavDestination.LOCATION)
+                    onCloseDrawer()
+                }
+            )
+
+            DrawerItemRow(
+                label = "Keamanan & Penyamaran",
+                icon = Icons.Default.Lock,
+                selected = currentDestination == NavDestination.SECURITY,
+                onClick = {
+                    onSelectDestination(NavDestination.SECURITY)
+                    onCloseDrawer()
+                }
+            )
+
+            DrawerItemRow(
+                label = "Sistem & Cadangan",
+                icon = Icons.Default.Settings,
+                selected = currentDestination == NavDestination.SETTINGS,
+                onClick = {
+                    onSelectDestination(NavDestination.SETTINGS)
+                    onCloseDrawer()
+                }
+            )
+        }
+
+        Spacer(modifier = Modifier.height(8.dp))
+        HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp), color = MinimalBorder)
+        Spacer(modifier = Modifier.height(8.dp))
+
+        // Quick Category Filter Section
+        Column(modifier = Modifier.padding(horizontal = 12.dp)) {
+            Text(
+                text = "FILTER CEPAT",
+                style = MaterialTheme.typography.labelSmall,
+                color = MinimalTextMuted,
+                fontWeight = FontWeight.Bold,
+                letterSpacing = 1.sp,
+                modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
+            )
+
+            NotificationCategory.entries.take(4).forEach { cat ->
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -270,7 +299,6 @@ fun AppDrawerContent(
             }
         }
 
-        Spacer(modifier = Modifier.weight(1f))
         Spacer(modifier = Modifier.height(16.dp))
 
         // Footer App Info
@@ -278,7 +306,7 @@ fun AppDrawerContent(
             color = MinimalSurfaceElevated,
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(16.dp),
+                .padding(horizontal = 16.dp, vertical = 8.dp),
             shape = RoundedCornerShape(12.dp),
             border = androidx.compose.foundation.BorderStroke(1.dp, MinimalBorder)
         ) {
@@ -310,6 +338,31 @@ fun AppDrawerContent(
                 }
             }
         }
+        Spacer(modifier = Modifier.height(16.dp))
     }
 }
 
+@Composable
+private fun DrawerItemRow(
+    label: String,
+    icon: ImageVector,
+    selected: Boolean,
+    onClick: () -> Unit
+) {
+    NavigationDrawerItem(
+        label = { Text(label, fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium, fontSize = 13.sp) },
+        icon = { Icon(icon, contentDescription = null, modifier = Modifier.size(20.dp)) },
+        selected = selected,
+        onClick = onClick,
+        colors = NavigationDrawerItemDefaults.colors(
+            selectedContainerColor = MinimalSurfaceElevated,
+            selectedIconColor = MinimalLavenderPrimary,
+            selectedTextColor = MinimalLavenderPrimary,
+            unselectedContainerColor = Color.Transparent,
+            unselectedIconColor = MinimalTextSecondary,
+            unselectedTextColor = MinimalTextSecondary
+        ),
+        shape = RoundedCornerShape(10.dp),
+        modifier = Modifier.padding(vertical = 1.dp)
+    )
+}

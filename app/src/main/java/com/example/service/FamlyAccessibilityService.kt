@@ -2,7 +2,9 @@ package com.example.service
 
 import android.accessibilityservice.AccessibilityService
 import android.content.Context
+import android.content.Intent
 import android.graphics.Bitmap
+import android.net.Uri
 import android.os.Build
 import android.provider.Settings
 import android.text.TextUtils
@@ -105,6 +107,48 @@ class FamlyAccessibilityService : AccessibilityService() {
                 }
             } catch (e: Exception) {
                 false
+            }
+        }
+
+        fun openAccessibilitySettings(context: Context) {
+            val componentName = "${context.packageName}/${FamlyAccessibilityService::class.java.canonicalName}"
+            var launched = false
+            
+            // Try direct detail setting screen for this component (Android 11+)
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                try {
+                    val intent = Intent("android.settings.ACCESSIBILITY_DETAILS_SETTINGS").apply {
+                        putExtra("android.provider.extra.ACCESSIBILITY_SERVICE_COMPONENT_NAME", componentName)
+                        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                    }
+                    context.startActivity(intent)
+                    launched = true
+                } catch (e: Exception) {
+                    Log.d("FamlyAccessibility", "Direct detail intent failed: ${e.message}")
+                }
+            }
+            
+            if (!launched) {
+                try {
+                    val intent = Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS).apply {
+                        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                    }
+                    context.startActivity(intent)
+                } catch (e: Exception) {
+                    Log.e("FamlyAccessibility", "Main accessibility intent failed: ${e.message}")
+                }
+            }
+        }
+
+        fun openAppInfoSettings(context: Context) {
+            try {
+                val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+                    data = Uri.parse("package:${context.packageName}")
+                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                }
+                context.startActivity(intent)
+            } catch (e: Exception) {
+                Log.e("FamlyAccessibility", "App info intent failed: ${e.message}")
             }
         }
 

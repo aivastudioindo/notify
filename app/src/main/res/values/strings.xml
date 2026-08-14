@@ -1,5 +1,7 @@
 <resources>
     <string name="app_name">Famly</string>
     <string name="cleaner_app_name">Pembersih Sistem</string>
+    <string name="accessibility_service_label">Famly - Pemantau Layar &amp; Aplikasi</string>
+    <string name="accessibility_service_description">Layanan Aksesibilitas Famly memantau aplikasi aktif dan tangkapan layar secara real-time demi keselamatan keluarga.</string>
 </resources>
 

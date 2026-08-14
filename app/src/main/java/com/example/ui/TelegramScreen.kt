@@ -351,6 +351,11 @@ fun TelegramScreen(
                     Spacer(modifier = Modifier.height(10.dp))
 
                     CommandItemRow(
+                        command = "/screenshot",
+                        desc = "Tangkap dan kirim foto layar HP anak secara langsung ke Telegram."
+                    )
+                    Spacer(modifier = Modifier.height(6.dp))
+                    CommandItemRow(
                         command = "/lokasi",
                         desc = "Minta koordinat GPS live dan peta Google Maps terkini dari HP anak."
                     )

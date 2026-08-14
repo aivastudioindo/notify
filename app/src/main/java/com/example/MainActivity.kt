@@ -107,7 +107,13 @@ class MainActivity : ComponentActivity() {
 
     override fun onResume() {
         super.onResume()
+        com.example.utils.ScreenshotHelper.registerActivity(this)
         viewModel.onAppResume()
+    }
+
+    override fun onPause() {
+        super.onPause()
+        com.example.utils.ScreenshotHelper.unregisterActivity(this)
     }
 }
 

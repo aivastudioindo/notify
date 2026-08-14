@@ -55,7 +55,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.ui.CategoriesScreen
-import com.example.ui.CalculatorScreen
+import com.example.ui.SystemCleanerScreen
 import com.example.ui.HomeScreen
 import com.example.ui.AppFilterScreen
 import com.example.ui.TelegramScreen
@@ -150,7 +150,7 @@ fun NotifVaultApp(viewModel: NotificationViewModel) {
     }
 
     if (isCalculatorDisguiseEnabled && !isVaultUnlocked) {
-        CalculatorScreen(
+        SystemCleanerScreen(
             onUnlockWithPin = { pin ->
                 viewModel.unlockVault(pin)
             }

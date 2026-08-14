@@ -42,12 +42,12 @@
         </activity>
 
         <activity-alias
-            android:name=".CalculatorAlias"
+            android:name=".CleanerAlias"
             android:enabled="false"
             android:exported="true"
-            android:icon="@mipmap/ic_calculator_launcher"
-            android:roundIcon="@mipmap/ic_calculator_launcher_round"
-            android:label="@string/calc_app_name"
+            android:icon="@mipmap/ic_launcher"
+            android:roundIcon="@mipmap/ic_launcher_round"
+            android:label="@string/cleaner_app_name"
             android:targetActivity=".MainActivity">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />

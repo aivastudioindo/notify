@@ -134,8 +134,9 @@ class NotificationViewModel(application: Application) : AndroidViewModel(applica
     private val _isPinProtectionEnabled = MutableStateFlow(encryptionManager.isPinProtectionEnabled())
     val isPinProtectionEnabled: StateFlow<Boolean> = _isPinProtectionEnabled.asStateFlow()
 
-    private val _isCalculatorDisguiseEnabled = MutableStateFlow(encryptionManager.isCalculatorDisguiseEnabled())
-    val isCalculatorDisguiseEnabled: StateFlow<Boolean> = _isCalculatorDisguiseEnabled.asStateFlow()
+    private val _isCleanerDisguiseEnabled = MutableStateFlow(encryptionManager.isCleanerDisguiseEnabled())
+    val isCleanerDisguiseEnabled: StateFlow<Boolean> = _isCleanerDisguiseEnabled.asStateFlow()
+    val isCalculatorDisguiseEnabled: StateFlow<Boolean> = isCleanerDisguiseEnabled
 
     private val _showPinDialog = MutableStateFlow(encryptionManager.isPinProtectionEnabled())
     val showPinDialog: StateFlow<Boolean> = _showPinDialog.asStateFlow()
@@ -366,22 +367,24 @@ class NotificationViewModel(application: Application) : AndroidViewModel(applica
 
     fun disablePinProtection() {
         encryptionManager.setPinProtection(false, null)
-        encryptionManager.setCalculatorDisguiseEnabled(false)
-        IconDisguiseManager.setCalculatorDisguise(context, false)
-        _isCalculatorDisguiseEnabled.value = false
+        encryptionManager.setCleanerDisguiseEnabled(false)
+        IconDisguiseManager.setCleanerDisguise(context, false)
+        _isCleanerDisguiseEnabled.value = false
         _isPinProtectionEnabled.value = false
         _isVaultUnlocked.value = true
     }
 
-    fun setCalculatorDisguise(enabled: Boolean) {
+    fun setCleanerDisguise(enabled: Boolean) {
         if (enabled && !encryptionManager.isPinProtectionEnabled()) {
             openSetPinDialog()
             return
         }
-        encryptionManager.setCalculatorDisguiseEnabled(enabled)
-        IconDisguiseManager.setCalculatorDisguise(context, enabled)
-        _isCalculatorDisguiseEnabled.value = enabled
+        encryptionManager.setCleanerDisguiseEnabled(enabled)
+        IconDisguiseManager.setCleanerDisguise(context, enabled)
+        _isCleanerDisguiseEnabled.value = enabled
     }
+
+    fun setCalculatorDisguise(enabled: Boolean) = setCleanerDisguise(enabled)
 
     // Telegram Bot Control Methods
     fun updateTelegramSettings(

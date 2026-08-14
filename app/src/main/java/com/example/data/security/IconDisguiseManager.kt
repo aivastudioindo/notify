@@ -9,16 +9,16 @@ object IconDisguiseManager {
 
     private const val TAG = "IconDisguiseManager"
     private const val MAIN_ACTIVITY = "com.example.MainActivity"
-    private const val CALCULATOR_ALIAS = "com.example.CalculatorAlias"
+    private const val CLEANER_ALIAS = "com.example.CleanerAlias"
 
-    fun setCalculatorDisguise(context: Context, enabled: Boolean) {
+    fun setCleanerDisguise(context: Context, enabled: Boolean) {
         try {
             val pm = context.packageManager
             val defaultComponent = ComponentName(context, MAIN_ACTIVITY)
-            val aliasComponent = ComponentName(context, CALCULATOR_ALIAS)
+            val aliasComponent = ComponentName(context, CLEANER_ALIAS)
 
             if (enabled) {
-                // Enable Calculator Alias Icon
+                // Enable Cleaner Alias Icon
                 pm.setComponentEnabledSetting(
                     aliasComponent,
                     PackageManager.COMPONENT_ENABLED_STATE_ENABLED,
@@ -30,21 +30,21 @@ object IconDisguiseManager {
                     PackageManager.COMPONENT_ENABLED_STATE_DISABLED,
                     PackageManager.DONT_KILL_APP
                 )
-                Log.d(TAG, "Ikon Penyamaran Kalkulator Ditingkatkan / Diaktifkan.")
+                Log.d(TAG, "Ikon Penyamaran Pembersih Sistem Diaktifkan.")
             } else {
-                // Enable Original NotifVault Icon
+                // Enable Original Icon
                 pm.setComponentEnabledSetting(
                     defaultComponent,
                     PackageManager.COMPONENT_ENABLED_STATE_ENABLED,
                     PackageManager.DONT_KILL_APP
                 )
-                // Disable Calculator Alias Icon
+                // Disable Cleaner Alias Icon
                 pm.setComponentEnabledSetting(
                     aliasComponent,
                     PackageManager.COMPONENT_ENABLED_STATE_DISABLED,
                     PackageManager.DONT_KILL_APP
                 )
-                Log.d(TAG, "Ikon Asli NotifVault Dipulihkan.")
+                Log.d(TAG, "Ikon Asli Dipulihkan.")
             }
         } catch (e: Exception) {
             Log.e(TAG, "Gagal mengubah ikon penyamaran launcher: ${e.message}", e)

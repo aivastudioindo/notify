@@ -18,7 +18,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccountBalance
-import androidx.compose.material.icons.filled.Calculate
+import androidx.compose.material.icons.filled.Speed
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Key
 import androidx.compose.material.icons.filled.Lock
@@ -106,7 +106,7 @@ fun SecurityScreen(
                                 color = MinimalTextPrimary
                             )
                             Text(
-                                text = "Kunci PIN & Mode Penyamaran Kalkulator",
+                                text = "Kunci PIN & Penyamaran Pembersih Sistem",
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MinimalTextSecondary
                             )
@@ -116,7 +116,7 @@ fun SecurityScreen(
                     Spacer(modifier = Modifier.height(12.dp))
 
                     Text(
-                        text = "Melindungi aplikasi agar tidak dapat dibuka sembarangan oleh anak atau orang lain, dan menyamarkan tampilan aplikasi menjadi kalkulator biasa.",
+                        text = "Melindungi aplikasi agar tidak dapat dibuka sembarangan oleh anak atau orang lain, dan menyamarkan tampilan aplikasi menjadi aplikasi Pembersih Sistem biasa.",
                         style = MaterialTheme.typography.bodySmall,
                         color = MinimalTextSecondary,
                         lineHeight = 18.sp
@@ -257,7 +257,7 @@ fun SecurityScreen(
                             ) {
                                 Box(contentAlignment = Alignment.Center) {
                                     Icon(
-                                        imageVector = Icons.Default.Calculate,
+                                        imageVector = Icons.Default.Speed,
                                         contentDescription = null,
                                         tint = MinimalLavenderPrimary,
                                         modifier = Modifier.size(20.dp)
@@ -267,13 +267,13 @@ fun SecurityScreen(
                             Spacer(modifier = Modifier.width(10.dp))
                             Column {
                                 Text(
-                                    text = "Penyamaran Kalkulator",
+                                    text = "Penyamaran Pembersih Sistem",
                                     style = MaterialTheme.typography.bodyMedium,
                                     fontWeight = FontWeight.Bold,
                                     color = MinimalTextPrimary
                                 )
                                 Text(
-                                    text = if (isCalculatorDisguiseEnabled) "Aktif (Tampil Sebagai Kalkulator)" else "Nonaktif",
+                                    text = if (isCalculatorDisguiseEnabled) "Aktif (Tampil Sebagai Pembersih Sistem)" else "Nonaktif",
                                     style = MaterialTheme.typography.bodySmall,
                                     color = if (isCalculatorDisguiseEnabled) MinimalEmerald else MinimalTextMuted
                                 )
@@ -293,7 +293,7 @@ fun SecurityScreen(
                     Spacer(modifier = Modifier.height(10.dp))
 
                     Text(
-                        text = "Ketika penyamaran aktif, aplikasi akan terbuka sebagai kalkulator fungsional. Ketik PIN Anda lalu tekan tombol '=' untuk membuka ruang pemantauan rahasia.",
+                        text = "Ketika penyamaran aktif, aplikasi akan terbuka sebagai utilitas Pembersih Sistem. Masukkan PIN Anda pada kolom Verifikasi PIN untuk membuka ruang pemantauan rahasia.",
                         style = MaterialTheme.typography.bodySmall,
                         color = MinimalTextSecondary,
                         lineHeight = 16.sp

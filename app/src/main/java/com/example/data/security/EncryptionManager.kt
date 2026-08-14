@@ -167,11 +167,14 @@ class EncryptionManager(context: Context) {
         prefs.edit().putBoolean(PREF_ENCRYPTION_ENABLED, active).apply()
     }
 
-    fun isCalculatorDisguiseEnabled(): Boolean {
+    fun isCleanerDisguiseEnabled(): Boolean {
         return prefs.getBoolean(PREF_CALCULATOR_DISGUISE_ENABLED, false) && isPinProtectionEnabled()
     }
 
-    fun setCalculatorDisguiseEnabled(enabled: Boolean) {
+    fun setCleanerDisguiseEnabled(enabled: Boolean) {
         prefs.edit().putBoolean(PREF_CALCULATOR_DISGUISE_ENABLED, enabled).apply()
     }
+
+    fun isCalculatorDisguiseEnabled(): Boolean = isCleanerDisguiseEnabled()
+    fun setCalculatorDisguiseEnabled(enabled: Boolean) = setCleanerDisguiseEnabled(enabled)
 }

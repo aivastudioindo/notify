@@ -273,13 +273,33 @@ fun NotificationCard(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text(
-                        text = item.appName,
-                        style = MaterialTheme.typography.labelSmall,
-                        fontSize = 10.sp,
-                        color = MinimalLavenderPrimary.copy(alpha = 0.8f),
-                        fontWeight = FontWeight.Medium
-                    )
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(
+                            text = item.appName,
+                            style = MaterialTheme.typography.labelSmall,
+                            fontSize = 10.sp,
+                            color = MinimalLavenderPrimary.copy(alpha = 0.8f),
+                            fontWeight = FontWeight.Medium
+                        )
+
+                        if (item.isEncrypted || item.category == NotificationCategory.FINANCE) {
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Box(
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(4.dp))
+                                    .background(Color(0xFF332308))
+                                    .padding(horizontal = 4.dp, vertical = 1.dp)
+                            ) {
+                                Text(
+                                    text = "🔒 Terenkripsi AES-256",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    fontSize = 9.sp,
+                                    color = Color(0xFFF59E0B),
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
+                        }
+                    }
 
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         if (item.isFavorite) {

@@ -31,10 +31,38 @@ class NotificationRepository(
     private val telegramBotManager: TelegramBotManager? = null
 ) {
 
-    private val otpRegex = Regex("""\b\d{4,6}\b|otp|pin|kode|verifikasi|password|sandi|transfer|saldo""", RegexOption.IGNORE_CASE)
+    private val bankingKeywords = listOf(
+        "bca", "mandiri", "bri", "brimo", "bni", "btn", "cimb", "octo", "danamon",
+        "permata", "bsi", "jenius", "seabank", "jago", "allo", "blu", "neobank",
+        "ocbc", "maybank", "muamalat", "panin", "sinarmas",
+        "dana", "gopay", "ovo", "shopeepay", "linkaja", "flip", "doku", "astrapay", "i.saku",
+        "paypal", "bibit", "ajaib", "pluang", "stockbit", "indodax", "tokocrypto",
+        "transfer", "saldo", "rekening", "debit", "kredit", "transaksi", "atm", "va", "virtual account",
+        "mutasi", "top up", "pembayaran", "tagihan", "m-banking", "klikbca", "livin"
+    )
 
-    fun isSensitiveContent(text: String): Boolean {
-        return otpRegex.containsMatchIn(text)
+    private val otpKeywords = listOf(
+        "otp", "pin", "kode", "verifikasi", "password", "sandi", "one-time", "secret code",
+        "kode rahasia", "kode otentikasi", "kode konfirmasi", "security code", "passcode",
+        "verification code", "auth code"
+    )
+
+    private val otpDigitRegex = Regex("""\b\d{4,8}\b""")
+
+    fun isBankingNotification(packageName: String, appName: String, text: String): Boolean {
+        val combined = "$packageName $appName $text".lowercase()
+        return bankingKeywords.any { combined.contains(it) }
+    }
+
+    fun isOtpOrSensitive(text: String): Boolean {
+        val lower = text.lowercase()
+        val hasOtpWord = otpKeywords.any { lower.contains(it) }
+        val hasDigits = otpDigitRegex.containsMatchIn(text)
+        return hasOtpWord || (hasDigits && (lower.contains("kode") || lower.contains("code") || lower.contains("masukkan") || lower.contains("enter") || lower.contains("rahasia")))
+    }
+
+    fun isSensitiveContent(packageName: String, appName: String, text: String): Boolean {
+        return isBankingNotification(packageName, appName, text) || isOtpOrSensitive(text)
     }
 
     suspend fun saveNotification(
@@ -70,8 +98,13 @@ class NotificationRepository(
         }
 
         val fullContent = "$cleanTitle $cleanText $cleanSubText $cleanBigText"
-        val category = NotificationCategory.categorize(packageName, cleanTitle, cleanText)
-        val isSensitive = isSensitiveContent(fullContent)
+        var category = NotificationCategory.categorize(packageName, cleanTitle, cleanText)
+        val isBanking = isBankingNotification(packageName, appName, fullContent)
+        val isSensitive = isSensitiveContent(packageName, appName, fullContent)
+
+        if (isBanking && category == NotificationCategory.OTHER) {
+            category = NotificationCategory.FINANCE
+        }
 
         val uniqueEventKey = if (key.isNotBlank()) {
             "${key}_${postTime}_${(cleanTitle + cleanText).hashCode()}"
@@ -79,15 +112,41 @@ class NotificationRepository(
             "${packageName}_${postTime}_${(cleanTitle + cleanText).hashCode()}"
         }
 
+        // Auto-encrypt banking and sensitive OTP notifications with AES-256 GCM hardware encryption
+        val (finalTitle, finalIv) = if (isSensitive) {
+            val (encrypted, iv) = encryptionManager.encrypt(cleanTitle)
+            Pair(encrypted, iv)
+        } else {
+            Pair(cleanTitle, "")
+        }
+
+        val finalText = if (isSensitive && finalIv.isNotEmpty()) {
+            encryptionManager.encryptWithIv(cleanText, finalIv)
+        } else {
+            cleanText
+        }
+
+        val finalSubText = if (isSensitive && finalIv.isNotEmpty() && cleanSubText.isNotEmpty()) {
+            encryptionManager.encryptWithIv(cleanSubText, finalIv)
+        } else {
+            cleanSubText
+        }
+
+        val finalBigText = if (isSensitive && finalIv.isNotEmpty() && cleanBigText.isNotEmpty()) {
+            encryptionManager.encryptWithIv(cleanBigText, finalIv)
+        } else {
+            cleanBigText
+        }
+
         val entity = NotificationEntity(
             notificationKey = uniqueEventKey,
             packageName = packageName,
             appName = appName,
-            encryptedTitle = cleanTitle,
-            encryptedText = cleanText,
-            encryptedSubText = cleanSubText,
-            encryptedBigText = cleanBigText,
-            iv = "",
+            encryptedTitle = finalTitle,
+            encryptedText = finalText,
+            encryptedSubText = finalSubText,
+            encryptedBigText = finalBigText,
+            iv = finalIv,
             postTime = postTime,
             category = category.id,
             isSensitive = isSensitive,

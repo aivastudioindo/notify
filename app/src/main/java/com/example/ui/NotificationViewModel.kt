@@ -48,8 +48,46 @@ class NotificationViewModel(application: Application) : AndroidViewModel(applica
     private val repository = (application as NotifVaultApplication).repository
     private val encryptionManager = (application as NotifVaultApplication).encryptionManager
     private val telegramBotManager = (application as NotifVaultApplication).telegramBotManager
+    private val appFilterManager = (application as NotifVaultApplication).appFilterManager
     private val locationHelper by lazy { com.example.data.location.LocationHelper(getApplication()) }
     private val context: Context get() = getApplication<Application>().applicationContext
+
+    // App Whitelist & Blacklist Filter State
+    val filterMode: StateFlow<com.example.data.filter.AppFilterMode> = appFilterManager.filterMode
+    val blacklist: StateFlow<Set<String>> = appFilterManager.blacklist
+    val whitelist: StateFlow<Set<String>> = appFilterManager.whitelist
+
+    fun setFilterMode(mode: com.example.data.filter.AppFilterMode) {
+        appFilterManager.setFilterMode(mode)
+    }
+
+    fun addToBlacklist(packageName: String) {
+        appFilterManager.addToBlacklist(packageName)
+    }
+
+    fun removeFromBlacklist(packageName: String) {
+        appFilterManager.removeFromBlacklist(packageName)
+    }
+
+    fun addToWhitelist(packageName: String) {
+        appFilterManager.addToWhitelist(packageName)
+    }
+
+    fun removeFromWhitelist(packageName: String) {
+        appFilterManager.removeFromWhitelist(packageName)
+    }
+
+    fun resetFilterDefaults() {
+        appFilterManager.resetToDefaults()
+    }
+
+    fun getInstalledApps(): List<com.example.data.filter.AppItem> {
+        return appFilterManager.getInstalledApps()
+    }
+
+    fun getAppNameForPackage(packageName: String): String {
+        return appFilterManager.getAppNameForPackage(packageName)
+    }
 
     // Telegram Bot Settings State
     private val _isTelegramEnabled = MutableStateFlow(telegramBotManager.isEnabled())

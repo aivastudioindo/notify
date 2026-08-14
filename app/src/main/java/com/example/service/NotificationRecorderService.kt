@@ -62,6 +62,13 @@ class NotificationRecorderService : NotificationListenerService() {
         // Skip our own app's notifications to prevent infinite loop
         if (packageName == applicationContext.packageName) return
 
+        // Check Whitelist / Blacklist Filter for Battery & Privacy Optimization
+        val filterManager = NotifVaultApplication.instance.appFilterManager
+        if (!filterManager.shouldRecordPackage(packageName)) {
+            // Ignored by user's whitelist/blacklist rule - skip immediately to save battery
+            return
+        }
+
         val notification = sbn.notification ?: return
         val extras = notification.extras
 

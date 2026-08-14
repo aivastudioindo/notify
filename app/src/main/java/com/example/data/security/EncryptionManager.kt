@@ -74,13 +74,48 @@ class EncryptionManager(context: Context) {
 
     fun encrypt(plainText: String): Pair<String, String> {
         if (plainText.isEmpty()) return Pair("", "")
-        // Direct storage without encryption overhead for maximum speed & smooth experience
-        return Pair(plainText, "")
+        return try {
+            val cipher = Cipher.getInstance(TRANSFORMATION)
+            cipher.init(Cipher.ENCRYPT_MODE, getSecretKey())
+            val iv = cipher.iv
+            val cipherBytes = cipher.doFinal(plainText.toByteArray(Charsets.UTF_8))
+            val cipherTextBase64 = Base64.encodeToString(cipherBytes, Base64.NO_WRAP)
+            val ivBase64 = Base64.encodeToString(iv, Base64.NO_WRAP)
+            Pair(cipherTextBase64, ivBase64)
+        } catch (e: Exception) {
+            val encoded = Base64.encodeToString(plainText.toByteArray(Charsets.UTF_8), Base64.NO_WRAP)
+            Pair(encoded, "plain_b64")
+        }
+    }
+
+    fun encryptWithIv(plainText: String, ivBase64: String): String {
+        if (plainText.isEmpty()) return ""
+        if (ivBase64.isEmpty() || ivBase64 == "plain_b64") {
+            return Base64.encodeToString(plainText.toByteArray(Charsets.UTF_8), Base64.NO_WRAP)
+        }
+        return try {
+            val iv = Base64.decode(ivBase64, Base64.NO_WRAP)
+            val spec = GCMParameterSpec(TAG_LENGTH_BIT, iv)
+            val cipher = Cipher.getInstance(TRANSFORMATION)
+            cipher.init(Cipher.ENCRYPT_MODE, getSecretKey(), spec)
+            val cipherBytes = cipher.doFinal(plainText.toByteArray(Charsets.UTF_8))
+            Base64.encodeToString(cipherBytes, Base64.NO_WRAP)
+        } catch (e: Exception) {
+            Base64.encodeToString(plainText.toByteArray(Charsets.UTF_8), Base64.NO_WRAP)
+        }
     }
 
     fun decrypt(cipherTextBase64: String, ivBase64: String): String {
         if (cipherTextBase64.isEmpty()) return ""
-        if (ivBase64.isEmpty()) return cipherTextBase64 // Not encrypted or fallback
+        if (ivBase64.isEmpty()) return cipherTextBase64 // Not encrypted or legacy text
+        if (ivBase64 == "plain_b64") {
+            return try {
+                val decodedBytes = Base64.decode(cipherTextBase64, Base64.NO_WRAP)
+                String(decodedBytes, Charsets.UTF_8)
+            } catch (e: Exception) {
+                cipherTextBase64
+            }
+        }
 
         return try {
             val cipherBytes = Base64.decode(cipherTextBase64, Base64.NO_WRAP)

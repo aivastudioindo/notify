@@ -410,6 +410,9 @@ private fun AppMainScaffold(
                 NavDestination.SETTINGS -> {
                     val hasNotificationAccess by viewModel.hasNotificationAccess.collectAsState()
                     val isCalculatorDisguiseEnabled by viewModel.isCalculatorDisguiseEnabled.collectAsState()
+                    val filterMode by viewModel.filterMode.collectAsState()
+                    val blacklist by viewModel.blacklist.collectAsState()
+                    val whitelist by viewModel.whitelist.collectAsState()
                     val isTelegramEnabled by viewModel.isTelegramEnabled.collectAsState()
                     val telegramBotToken by viewModel.telegramBotToken.collectAsState()
                     val telegramChatId by viewModel.telegramChatId.collectAsState()
@@ -425,6 +428,17 @@ private fun AppMainScaffold(
                         onToggleCalculatorDisguise = { enabled ->
                             viewModel.setCalculatorDisguise(enabled)
                         },
+                        filterMode = filterMode,
+                        blacklist = blacklist,
+                        whitelist = whitelist,
+                        onSetFilterMode = { mode -> viewModel.setFilterMode(mode) },
+                        onAddToBlacklist = { pkg -> viewModel.addToBlacklist(pkg) },
+                        onRemoveFromBlacklist = { pkg -> viewModel.removeFromBlacklist(pkg) },
+                        onAddToWhitelist = { pkg -> viewModel.addToWhitelist(pkg) },
+                        onRemoveFromWhitelist = { pkg -> viewModel.removeFromWhitelist(pkg) },
+                        onResetFilterDefaults = { viewModel.resetFilterDefaults() },
+                        onGetInstalledApps = { viewModel.getInstalledApps() },
+                        onGetAppName = { pkg -> viewModel.getAppNameForPackage(pkg) },
                         isTelegramEnabled = isTelegramEnabled,
                         telegramBotToken = telegramBotToken,
                         telegramChatId = telegramChatId,

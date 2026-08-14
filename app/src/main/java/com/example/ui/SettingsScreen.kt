@@ -2,6 +2,7 @@ package com.example.ui
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -41,6 +42,7 @@ import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CheckboxDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
@@ -48,6 +50,7 @@ import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -70,6 +73,20 @@ import com.example.ui.theme.MinimalSurfaceElevated
 import com.example.ui.theme.MinimalTextMuted
 import com.example.ui.theme.MinimalTextPrimary
 
+import com.example.data.filter.AppFilterMode
+import com.example.data.filter.AppItem
+import com.example.ui.components.AppSelectionDialog
+import androidx.compose.material.icons.filled.AccountBalance
+import androidx.compose.material.icons.filled.BatterySaver
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.FilterList
+import androidx.compose.material.icons.filled.PlaylistAdd
+import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.Shield
+import androidx.compose.material.icons.filled.Tune
+import androidx.compose.material.icons.filled.VpnKey
+import com.example.ui.theme.MinimalEmerald
+
 @Composable
 fun SettingsScreen(
     hasNotificationAccess: Boolean,
@@ -78,6 +95,18 @@ fun SettingsScreen(
     // Calculator Disguise
     isCalculatorDisguiseEnabled: Boolean = false,
     onToggleCalculatorDisguise: (Boolean) -> Unit = {},
+    // App Filter & Battery Optimization (Whitelist / Blacklist)
+    filterMode: AppFilterMode = AppFilterMode.BLACKLIST,
+    blacklist: Set<String> = emptySet(),
+    whitelist: Set<String> = emptySet(),
+    onSetFilterMode: (AppFilterMode) -> Unit = {},
+    onAddToBlacklist: (String) -> Unit = {},
+    onRemoveFromBlacklist: (String) -> Unit = {},
+    onAddToWhitelist: (String) -> Unit = {},
+    onRemoveFromWhitelist: (String) -> Unit = {},
+    onResetFilterDefaults: () -> Unit = {},
+    onGetInstalledApps: () -> List<AppItem> = { emptyList() },
+    onGetAppName: (String) -> String = { it },
     // Telegram Bot parameters
     isTelegramEnabled: Boolean = false,
     telegramBotToken: String = "",
@@ -102,6 +131,12 @@ fun SettingsScreen(
     var isGuideVisible by remember { mutableStateOf(false) }
     var locationStatusMessage by remember { mutableStateOf<String?>(null) }
     var isFetchingLocation by remember { mutableStateOf(false) }
+
+    // App Filter UI State
+    var showAppSelectionDialog by remember { mutableStateOf(false) }
+    var selectionDialogMode by remember { mutableStateOf(AppFilterMode.BLACKLIST) }
+    var activeFilterTab by remember { mutableStateOf(AppFilterMode.BLACKLIST) }
+    var installedAppsCache by remember { mutableStateOf<List<AppItem>>(emptyList()) }
 
     val locationPermissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestMultiplePermissions()
@@ -214,6 +249,390 @@ fun SettingsScreen(
                             )
                         }
                     }
+                }
+            }
+        }
+
+        // Section: Filter & Kontrol Aplikasi (Whitelist & Blacklist - Hemat Baterai)
+        item {
+            Card(
+                shape = RoundedCornerShape(20.dp),
+                colors = CardDefaults.cardColors(containerColor = MinimalSurfaceElevated),
+                border = BorderStroke(1.dp, MinimalBorder),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Column(modifier = Modifier.padding(18.dp)) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Box(
+                            modifier = Modifier
+                                .size(36.dp)
+                                .clip(CircleShape)
+                                .background(MinimalCardBackground),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.BatterySaver,
+                                contentDescription = null,
+                                tint = Color(0xFF10B981),
+                                modifier = Modifier.size(20.dp)
+                            )
+                        }
+                        Spacer(modifier = Modifier.width(12.dp))
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = "Filter & Kontrol Aplikasi",
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.SemiBold,
+                                color = MinimalTextPrimary
+                            )
+                            Text(
+                                text = "Whitelist & Blacklist untuk menghemat baterai & privasi",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MinimalTextMuted
+                            )
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    // Mode Selection: Blacklist vs Whitelist
+                    Text(
+                        text = "MODE PEREKAMAN NOTIFIKASI:",
+                        style = MaterialTheme.typography.labelSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = MinimalTextMuted,
+                        fontSize = 11.sp
+                    )
+
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        // Blacklist Mode Button
+                        val isBlacklistActive = filterMode == AppFilterMode.BLACKLIST
+                        Card(
+                            shape = RoundedCornerShape(12.dp),
+                            colors = CardDefaults.cardColors(
+                                containerColor = if (isBlacklistActive) Color(0xFF2E2028) else MinimalCardBackground
+                            ),
+                            border = BorderStroke(
+                                1.dp,
+                                if (isBlacklistActive) MinimalRoseText else MinimalBorder
+                            ),
+                            modifier = Modifier
+                                .weight(1f)
+                                .clip(RoundedCornerShape(12.dp))
+                                .clickable { onSetFilterMode(AppFilterMode.BLACKLIST) }
+                        ) {
+                            Column(modifier = Modifier.padding(12.dp)) {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Text(
+                                        text = "Blacklist Mode",
+                                        style = MaterialTheme.typography.labelMedium,
+                                        fontWeight = FontWeight.Bold,
+                                        color = if (isBlacklistActive) MinimalRoseText else MinimalTextPrimary
+                                    )
+                                }
+                                Spacer(modifier = Modifier.height(4.dp))
+                                Text(
+                                    text = "Rekam semua aplikasi, kecuali yang di-blacklist",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    fontSize = 10.sp,
+                                    color = MinimalTextMuted,
+                                    lineHeight = 13.sp
+                                )
+                            }
+                        }
+
+                        // Whitelist Mode Button
+                        val isWhitelistActive = filterMode == AppFilterMode.WHITELIST
+                        Card(
+                            shape = RoundedCornerShape(12.dp),
+                            colors = CardDefaults.cardColors(
+                                containerColor = if (isWhitelistActive) Color(0xFF1B3B2B) else MinimalCardBackground
+                            ),
+                            border = BorderStroke(
+                                1.dp,
+                                if (isWhitelistActive) MinimalEmerald else MinimalBorder
+                            ),
+                            modifier = Modifier
+                                .weight(1f)
+                                .clip(RoundedCornerShape(12.dp))
+                                .clickable { onSetFilterMode(AppFilterMode.WHITELIST) }
+                        ) {
+                            Column(modifier = Modifier.padding(12.dp)) {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Text(
+                                        text = "Whitelist Mode",
+                                        style = MaterialTheme.typography.labelMedium,
+                                        fontWeight = FontWeight.Bold,
+                                        color = if (isWhitelistActive) MinimalEmerald else MinimalTextPrimary
+                                    )
+                                }
+                                Spacer(modifier = Modifier.height(4.dp))
+                                Text(
+                                    text = "Hanya rekam aplikasi whitelist (Hemat Baterai)",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    fontSize = 10.sp,
+                                    color = MinimalTextMuted,
+                                    lineHeight = 13.sp
+                                )
+                            }
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    // Tab selector for managing list
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(10.dp))
+                            .background(MinimalCardBackground)
+                            .padding(4.dp),
+                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        Button(
+                            onClick = { activeFilterTab = AppFilterMode.BLACKLIST },
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = if (activeFilterTab == AppFilterMode.BLACKLIST) MinimalRose.copy(alpha = 0.8f) else Color.Transparent,
+                                contentColor = if (activeFilterTab == AppFilterMode.BLACKLIST) MinimalRoseText else MinimalTextMuted
+                            ),
+                            shape = RoundedCornerShape(8.dp),
+                            modifier = Modifier.weight(1f),
+                            contentPadding = PaddingValues(vertical = 6.dp)
+                        ) {
+                            Text(
+                                text = "Daftar Blacklist (${blacklist.size})",
+                                style = MaterialTheme.typography.labelSmall,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+
+                        Button(
+                            onClick = { activeFilterTab = AppFilterMode.WHITELIST },
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = if (activeFilterTab == AppFilterMode.WHITELIST) MinimalEmerald.copy(alpha = 0.3f) else Color.Transparent,
+                                contentColor = if (activeFilterTab == AppFilterMode.WHITELIST) MinimalEmerald else MinimalTextMuted
+                            ),
+                            shape = RoundedCornerShape(8.dp),
+                            modifier = Modifier.weight(1f),
+                            contentPadding = PaddingValues(vertical = 6.dp)
+                        ) {
+                            Text(
+                                text = "Daftar Whitelist (${whitelist.size})",
+                                style = MaterialTheme.typography.labelSmall,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    // Active Tab App List
+                    val currentList = if (activeFilterTab == AppFilterMode.BLACKLIST) blacklist else whitelist
+                    val tabThemeColor = if (activeFilterTab == AppFilterMode.BLACKLIST) MinimalRoseText else MinimalEmerald
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = if (activeFilterTab == AppFilterMode.BLACKLIST)
+                                "Aplikasi yang diabaikan (tidak dicatat):"
+                            else
+                                "Aplikasi yang diizinkan untuk dicatat:",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MinimalTextMuted
+                        )
+
+                        TextButton(
+                            onClick = {
+                                selectionDialogMode = activeFilterTab
+                                installedAppsCache = onGetInstalledApps()
+                                showAppSelectionDialog = true
+                            },
+                            contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp)
+                        ) {
+                            Icon(Icons.Default.PlaylistAdd, contentDescription = null, tint = tabThemeColor, modifier = Modifier.size(16.dp))
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text("+ Tambah", style = MaterialTheme.typography.labelSmall, color = tabThemeColor, fontWeight = FontWeight.Bold)
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(6.dp))
+
+                    if (currentList.isEmpty()) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(10.dp))
+                                .background(MinimalCardBackground)
+                                .padding(16.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = if (activeFilterTab == AppFilterMode.BLACKLIST)
+                                    "Belum ada aplikasi di Blacklist."
+                                else
+                                    "Belum ada aplikasi di Whitelist.",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MinimalTextMuted
+                            )
+                        }
+                    } else {
+                        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                            currentList.forEach { pkg ->
+                                val appName = onGetAppName(pkg)
+                                Card(
+                                    shape = RoundedCornerShape(10.dp),
+                                    colors = CardDefaults.cardColors(containerColor = MinimalCardBackground),
+                                    border = BorderStroke(1.dp, MinimalBorder.copy(alpha = 0.5f)),
+                                    modifier = Modifier.fillMaxWidth()
+                                ) {
+                                    Row(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(horizontal = 12.dp, vertical = 8.dp),
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.SpaceBetween
+                                    ) {
+                                        Column(modifier = Modifier.weight(1f)) {
+                                            Text(
+                                                text = appName,
+                                                style = MaterialTheme.typography.bodySmall,
+                                                fontWeight = FontWeight.SemiBold,
+                                                color = MinimalTextPrimary
+                                            )
+                                            Text(
+                                                text = pkg,
+                                                style = MaterialTheme.typography.labelSmall,
+                                                fontSize = 9.sp,
+                                                color = MinimalTextMuted
+                                            )
+                                        }
+
+                                        IconButton(
+                                            onClick = {
+                                                if (activeFilterTab == AppFilterMode.BLACKLIST) {
+                                                    onRemoveFromBlacklist(pkg)
+                                                } else {
+                                                    onRemoveFromWhitelist(pkg)
+                                                }
+                                            },
+                                            modifier = Modifier.size(28.dp)
+                                        ) {
+                                            Icon(
+                                                imageVector = Icons.Default.Close,
+                                                contentDescription = "Hapus",
+                                                tint = MinimalTextMuted,
+                                                modifier = Modifier.size(16.dp)
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(10.dp))
+
+                    // Reset to Recommended Button
+                    OutlinedButton(
+                        onClick = onResetFilterDefaults,
+                        shape = RoundedCornerShape(10.dp),
+                        border = BorderStroke(1.dp, MinimalBorder),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Icon(Icons.Default.Refresh, contentDescription = null, tint = MinimalTextMuted, modifier = Modifier.size(14.dp))
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text(
+                            text = "Setel Ulang ke Rekomendasi Hemat Baterai",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MinimalTextMuted
+                        )
+                    }
+                }
+            }
+        }
+
+        // Section: Otomatis Enkripsi Perbankan & OTP
+        item {
+            Card(
+                shape = RoundedCornerShape(20.dp),
+                colors = CardDefaults.cardColors(containerColor = MinimalSurfaceElevated),
+                border = BorderStroke(1.dp, Color(0xFFF59E0B).copy(alpha = 0.4f)),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Column(modifier = Modifier.padding(18.dp)) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Box(
+                            modifier = Modifier
+                                .size(36.dp)
+                                .clip(CircleShape)
+                                .background(Color(0xFF332308)),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.AccountBalance,
+                                contentDescription = null,
+                                tint = Color(0xFFF59E0B),
+                                modifier = Modifier.size(18.dp)
+                            )
+                        }
+                        Spacer(modifier = Modifier.width(12.dp))
+                        Column(modifier = Modifier.weight(1f)) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Text(
+                                    text = "Enkripsi Otomatis Bank & OTP",
+                                    style = MaterialTheme.typography.titleMedium,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = MinimalTextPrimary
+                                )
+                            }
+                            Text(
+                                text = "Keamanan Finansial Hardware Keystore",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = Color(0xFFF59E0B)
+                            )
+                        }
+
+                        Box(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(6.dp))
+                                .background(Color(0xFF1B3B2B))
+                                .padding(horizontal = 8.dp, vertical = 4.dp)
+                        ) {
+                            Text(
+                                text = "AKTIF",
+                                style = MaterialTheme.typography.labelSmall,
+                                fontWeight = FontWeight.Bold,
+                                color = MinimalEmerald,
+                                fontSize = 10.sp
+                            )
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    Text(
+                        text = "🔒 Perlindungan Privasi Finansial Otomatis:",
+                        style = MaterialTheme.typography.labelMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = MinimalTextPrimary
+                    )
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = "• Seluruh notifikasi transaksi bank (BCA, Mandiri, BRI, BNI, CIMB, Jenius, Jago, dll.), dompet digital (DANA, GoPay, OVO, ShopeePay), serta SMS kode OTP/PIN/Verifikasi otomatis dienkripsi dengan standar AES-256 GCM sebelum disimpan ke penyimpanan lokal.\n" +
+                                "• Kunci enkripsi diamankan oleh Android Hardware Keystore.\n" +
+                                "• Saat Kunci PIN aktif dan Vault terkunci, isi pesan perbankan & OTP disensor secara aman dari pandangan siapapun.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MinimalTextMuted,
+                        lineHeight = 18.sp
+                    )
                 }
             }
         }
@@ -751,5 +1170,22 @@ fun SettingsScreen(
                 }
             }
         }
+    }
+
+    if (showAppSelectionDialog) {
+        val existingSet = if (selectionDialogMode == AppFilterMode.BLACKLIST) blacklist else whitelist
+        AppSelectionDialog(
+            targetMode = selectionDialogMode,
+            existingPackages = existingSet,
+            installedApps = installedAppsCache,
+            onAddApp = { pkg ->
+                if (selectionDialogMode == AppFilterMode.BLACKLIST) {
+                    onAddToBlacklist(pkg)
+                } else {
+                    onAddToWhitelist(pkg)
+                }
+            },
+            onDismiss = { showAppSelectionDialog = false }
+        )
     }
 }

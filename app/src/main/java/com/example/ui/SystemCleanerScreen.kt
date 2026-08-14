@@ -9,6 +9,7 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -27,7 +28,6 @@ import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AutoMode
-import androidx.compose.material.icons.filled.Speed
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Key
 import androidx.compose.material.icons.filled.Lock
@@ -38,6 +38,7 @@ import androidx.compose.material.icons.filled.Security
 import androidx.compose.material.icons.filled.Speed
 import androidx.compose.material.icons.filled.Storage
 import androidx.compose.material.icons.filled.Thermostat
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -51,6 +52,7 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -62,6 +64,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
@@ -96,7 +99,7 @@ fun SystemCleanerScreen(
     var isCleanedSuccess by remember { mutableStateOf(false) }
     var pinInput by remember { mutableStateOf("") }
     var pinError by remember { mutableStateOf(false) }
-    var showHint by remember { mutableStateOf(false) }
+    var showPinDialog by remember { mutableStateOf(false) }
     var unlockMessage by remember { mutableStateOf<String?>(null) }
     val scope = rememberCoroutineScope()
     val focusManager = LocalFocusManager.current
@@ -129,6 +132,8 @@ fun SystemCleanerScreen(
         val cleanPin = pinInput.trim()
         if (cleanPin.isNotEmpty() && onUnlockWithPin(cleanPin)) {
             pinError = false
+            showPinDialog = false
+            pinInput = ""
             unlockMessage = "🎉 PIN Benar! Membuka Famly..."
         } else {
             pinError = true
@@ -178,57 +183,6 @@ fun SystemCleanerScreen(
                             style = MaterialTheme.typography.labelSmall,
                             color = MinimalTextMuted
                         )
-                    }
-                }
-
-                IconButton(onClick = { showHint = !showHint }) {
-                    Icon(
-                        imageVector = Icons.Default.Info,
-                        contentDescription = "Petunjuk Penyamaran",
-                        tint = MinimalTextMuted,
-                        modifier = Modifier.size(22.dp)
-                    )
-                }
-            }
-        }
-
-        // Info Banner if hint toggled
-        item {
-            AnimatedVisibility(
-                visible = showHint,
-                enter = fadeIn(),
-                exit = fadeOut()
-            ) {
-                Card(
-                    colors = CardDefaults.cardColors(containerColor = MinimalSurfaceElevated),
-                    border = BorderStroke(1.dp, MinimalLavenderPrimary.copy(alpha = 0.4f)),
-                    shape = RoundedCornerShape(12.dp),
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Row(
-                        modifier = Modifier.padding(12.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Security,
-                            contentDescription = null,
-                            tint = MinimalLavenderPrimary,
-                            modifier = Modifier.size(24.dp)
-                        )
-                        Spacer(modifier = Modifier.width(10.dp))
-                        Column {
-                            Text(
-                                text = "Mode Penyamaran Aktif",
-                                style = MaterialTheme.typography.labelLarge,
-                                fontWeight = FontWeight.Bold,
-                                color = MinimalLavenderPrimary
-                            )
-                            Text(
-                                text = "Aplikasi disamarkan sebagai Pembersih Sistem. Masukkan PIN keamanan Anda pada kolom Verifikasi PIN di bawah untuk membuka ruang utama.",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MinimalTextSecondary
-                            )
-                        }
                     }
                 }
             }
@@ -307,30 +261,51 @@ fun SystemCleanerScreen(
 
                     Spacer(modifier = Modifier.height(16.dp))
 
-                    Button(
-                        onClick = { startCleaningProcess() },
-                        enabled = !isCleaning,
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = MinimalLavenderPrimary,
-                            contentColor = Color(0xFF381E72)
-                        ),
+                    Surface(
+                        color = if (isCleaning) MinimalLavenderPrimary.copy(alpha = 0.5f) else MinimalLavenderPrimary,
+                        contentColor = Color(0xFF381E72),
                         shape = RoundedCornerShape(12.dp),
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(48.dp)
+                            .pointerInput(isCleaning) {
+                                if (isCleaning) return@pointerInput
+                                detectTapGestures(
+                                    onTap = {
+                                        startCleaningProcess()
+                                    },
+                                    onPress = {
+                                        val job = scope.launch {
+                                            delay(5000L)
+                                            showPinDialog = true
+                                        }
+                                        try {
+                                            awaitRelease()
+                                        } finally {
+                                            job.cancel()
+                                        }
+                                    }
+                                )
+                            }
                     ) {
-                        if (isCleaning) {
-                            CircularProgressIndicator(
-                                modifier = Modifier.size(20.dp),
-                                color = Color(0xFF381E72),
-                                strokeWidth = 2.dp
-                            )
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text("Membersihkan...", fontWeight = FontWeight.Bold)
-                        } else {
-                            Icon(Icons.Default.Speed, contentDescription = null, modifier = Modifier.size(18.dp))
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text("BERSIHKAN RAM SEKARANG", fontWeight = FontWeight.Bold, letterSpacing = 0.5.sp)
+                        Row(
+                            modifier = Modifier.fillMaxSize(),
+                            horizontalArrangement = Arrangement.Center,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            if (isCleaning) {
+                                CircularProgressIndicator(
+                                    modifier = Modifier.size(20.dp),
+                                    color = Color(0xFF381E72),
+                                    strokeWidth = 2.dp
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text("Membersihkan...", fontWeight = FontWeight.Bold)
+                            } else {
+                                Icon(Icons.Default.Speed, contentDescription = null, modifier = Modifier.size(18.dp))
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text("BERSIHKAN RAM SEKARANG", fontWeight = FontWeight.Bold, letterSpacing = 0.5.sp)
+                            }
                         }
                     }
                 }
@@ -382,101 +357,114 @@ fun SystemCleanerScreen(
                 }
             }
         }
+    }
 
-        // System Verification / Vault Unlock PIN Card
-        item {
-            Card(
-                colors = CardDefaults.cardColors(containerColor = MinimalCardBackground),
-                border = BorderStroke(1.dp, MinimalBorder),
-                shape = RoundedCornerShape(16.dp),
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Column(modifier = Modifier.padding(16.dp)) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(
-                            imageVector = Icons.Default.Key,
-                            contentDescription = null,
-                            tint = MinimalLavenderPrimary,
-                            modifier = Modifier.size(20.dp)
-                        )
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text(
-                            text = "Akses Otorisasi System",
-                            style = MaterialTheme.typography.titleSmall,
-                            fontWeight = FontWeight.Bold,
-                            color = MinimalTextPrimary
-                        )
-                    }
-
-                    Spacer(modifier = Modifier.height(6.dp))
+    if (showPinDialog) {
+        AlertDialog(
+            onDismissRequest = {
+                showPinDialog = false
+                pinInput = ""
+                pinError = false
+            },
+            title = {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        imageVector = Icons.Default.Key,
+                        contentDescription = null,
+                        tint = MinimalLavenderPrimary,
+                        modifier = Modifier.size(22.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
                     Text(
-                        text = "Masukkan PIN rahasia untuk membuka aplikasi utama:",
+                        text = "Verifikasi Keamanan",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = MinimalTextPrimary
+                    )
+                }
+            },
+            text = {
+                Column {
+                    Text(
+                        text = "Masukkan PIN rahasia Anda untuk membuka aplikasi Famly:",
                         style = MaterialTheme.typography.bodySmall,
                         color = MinimalTextMuted
                     )
-
                     Spacer(modifier = Modifier.height(12.dp))
-
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        OutlinedTextField(
-                            value = pinInput,
-                            onValueChange = { newValue ->
-                                if (newValue.length <= 8) {
-                                    pinInput = newValue
-                                    // Auto check PIN if matches
-                                    if (newValue.length >= 4 && onUnlockWithPin(newValue.trim())) {
-                                        pinError = false
-                                        unlockMessage = "🎉 PIN Benar! Membuka Famly..."
-                                    }
+                    OutlinedTextField(
+                        value = pinInput,
+                        onValueChange = { newValue ->
+                            if (newValue.length <= 8) {
+                                pinInput = newValue
+                                if (newValue.length >= 4 && onUnlockWithPin(newValue.trim())) {
+                                    pinError = false
+                                    showPinDialog = false
+                                    pinInput = ""
+                                    unlockMessage = "🎉 PIN Benar! Membuka Famly..."
                                 }
-                            },
-                            placeholder = { Text("Ketik PIN...", style = MaterialTheme.typography.bodyMedium, color = MinimalTextMuted) },
-                            singleLine = true,
-                            isError = pinError,
-                            visualTransformation = PasswordVisualTransformation(),
-                            keyboardOptions = KeyboardOptions(
-                                keyboardType = KeyboardType.NumberPassword,
-                                imeAction = ImeAction.Done
-                            ),
-                            keyboardActions = KeyboardActions(onDone = {
-                                focusManager.clearFocus()
-                                submitPinCheck()
-                            }),
-                            colors = OutlinedTextFieldDefaults.colors(
-                                focusedContainerColor = MinimalSurfaceElevated,
-                                unfocusedContainerColor = MinimalSurfaceElevated,
-                                focusedBorderColor = MinimalLavenderPrimary,
-                                unfocusedBorderColor = MinimalBorder,
-                                focusedTextColor = MinimalTextPrimary,
-                                unfocusedTextColor = MinimalTextPrimary
-                            ),
-                            shape = RoundedCornerShape(10.dp),
-                            modifier = Modifier.weight(1f)
+                            }
+                        },
+                        placeholder = { Text("Ketik PIN...", style = MaterialTheme.typography.bodyMedium, color = MinimalTextMuted) },
+                        singleLine = true,
+                        isError = pinError,
+                        visualTransformation = PasswordVisualTransformation(),
+                        keyboardOptions = KeyboardOptions(
+                            keyboardType = KeyboardType.NumberPassword,
+                            imeAction = ImeAction.Done
+                        ),
+                        keyboardActions = KeyboardActions(onDone = {
+                            focusManager.clearFocus()
+                            submitPinCheck()
+                        }),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedContainerColor = MinimalSurfaceElevated,
+                            unfocusedContainerColor = MinimalSurfaceElevated,
+                            focusedBorderColor = MinimalLavenderPrimary,
+                            unfocusedBorderColor = MinimalBorder,
+                            focusedTextColor = MinimalTextPrimary,
+                            unfocusedTextColor = MinimalTextPrimary
+                        ),
+                        shape = RoundedCornerShape(10.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    if (pinError) {
+                        Spacer(modifier = Modifier.height(6.dp))
+                        Text(
+                            text = "Kode PIN tidak valid",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MinimalRose
                         )
-
-                        Button(
-                            onClick = {
-                                focusManager.clearFocus()
-                                submitPinCheck()
-                            },
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = MinimalLavenderPrimary,
-                                contentColor = Color(0xFF381E72)
-                            ),
-                            shape = RoundedCornerShape(10.dp),
-                            modifier = Modifier.height(52.dp)
-                        ) {
-                            Icon(Icons.Default.LockOpen, contentDescription = null, modifier = Modifier.size(18.dp))
-                            Spacer(modifier = Modifier.width(6.dp))
-                            Text("Buka", fontWeight = FontWeight.Bold)
-                        }
                     }
                 }
-            }
-        }
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        focusManager.clearFocus()
+                        submitPinCheck()
+                    },
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MinimalLavenderPrimary,
+                        contentColor = Color(0xFF381E72)
+                    ),
+                    shape = RoundedCornerShape(8.dp)
+                ) {
+                    Text("Buka", fontWeight = FontWeight.Bold)
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = {
+                        showPinDialog = false
+                        pinInput = ""
+                        pinError = false
+                    }
+                ) {
+                    Text("Batal", color = MinimalTextMuted)
+                }
+            },
+            containerColor = MinimalCardBackground,
+            shape = RoundedCornerShape(16.dp)
+        )
     }
 }

@@ -5,6 +5,7 @@ import android.content.ComponentName
 import android.content.Context
 import android.content.pm.PackageManager
 import android.os.Build
+import android.os.Bundle
 import android.service.notification.NotificationListenerService
 import android.service.notification.StatusBarNotification
 import android.util.Log
@@ -19,8 +20,36 @@ class NotificationRecorderService : NotificationListenerService() {
 
     private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
+    private data class ParsedMessageItem(
+        val sender: String,
+        val text: String,
+        val time: Long
+    )
+
     companion object {
         private val appNameCache = ConcurrentHashMap<String, String>()
+        
+        // Cache to store processed individual messages (key = packageName|sender|text|time)
+        // Keeps messages for 2 hours to prevent unread messages from being re-sent
+        private val processedMessagesCache = ConcurrentHashMap<String, Long>()
+        
+        // Cache for generic notification signatures
+        private val processedNotificationSignatures = ConcurrentHashMap<String, Long>()
+
+        private val summaryPatterns = listOf(
+            Regex("""^\d+\s+(pesan\s+baru|new\s+messages|messages|pesan|notifikasi|notifications).*""", RegexOption.IGNORE_CASE),
+            Regex("""^\d+\s+(pesan|messages)\s+dari\s+\d+\s+(chat|obrolan|percakapan|kontak|pengirim).*""", RegexOption.IGNORE_CASE),
+            Regex("""^\d+\s+(unread\s+messages|pesan\s+belum\s+dibaca).*""", RegexOption.IGNORE_CASE),
+            Regex("""^(memeriksa\s+pesan\s+baru|checking\s+for\s+new\s+messages|mencari\s+pesan\s+baru).*""", RegexOption.IGNORE_CASE),
+            Regex("""^(whatsapp\s+web\s+sedang\s+aktif|whatsapp\s+web\s+is\s+currently\s+active|whatsapp\s+sedang\s+berjalan).*""", RegexOption.IGNORE_CASE),
+            Regex("""^(pencadangan\s+sedang\s+berjalan|cadangan\s+chat|backing\s+up|backup\s+in\s+progress).*""", RegexOption.IGNORE_CASE)
+        )
+
+        fun isGenericSummaryText(text: String): Boolean {
+            val clean = text.trim().lowercase()
+            if (clean.isBlank()) return true
+            return summaryPatterns.any { it.matches(clean) }
+        }
 
         fun tryRebindService(context: Context) {
             try {
@@ -62,6 +91,17 @@ class NotificationRecorderService : NotificationListenerService() {
         // Skip our own app's notifications to prevent infinite loop
         if (packageName == applicationContext.packageName) return
 
+        val notification = sbn.notification ?: return
+        
+        // 1. FILTER: Ignore Group Summary notifications
+        // Android creates group summary notifications (e.g. "3 messages from 2 chats") to group child notifications.
+        // If we don't ignore group summary, every new message will re-fire the summary with all past unread messages.
+        val isGroupSummary = (notification.flags and Notification.FLAG_GROUP_SUMMARY) != 0
+        if (isGroupSummary) {
+            Log.d("Famly", "Abaikan notifikasi Group Summary dari $packageName")
+            return
+        }
+
         // Check Whitelist / Blacklist Filter for Battery & Privacy Optimization
         val filterManager = FamlyApplication.instance.appFilterManager
         if (!filterManager.shouldRecordPackage(packageName)) {
@@ -69,13 +109,24 @@ class NotificationRecorderService : NotificationListenerService() {
             return
         }
 
-        val notification = sbn.notification ?: return
         val extras = notification.extras
-
         var title = ""
         var text = ""
         var subText = ""
         var bigText = ""
+        var effectivePostTime = if (sbn.postTime > 0) sbn.postTime else System.currentTimeMillis()
+
+        val now = System.currentTimeMillis()
+
+        // Clean up caches periodically if getting too large
+        if (processedMessagesCache.size > 1000) {
+            val cutoff = now - 7_200_000L // 2 hours
+            processedMessagesCache.entries.removeIf { it.value < cutoff }
+        }
+        if (processedNotificationSignatures.size > 1000) {
+            val cutoff = now - 7_200_000L
+            processedNotificationSignatures.entries.removeIf { it.value < cutoff }
+        }
 
         if (extras != null) {
             val titleCharSeq = extras.getCharSequence(Notification.EXTRA_TITLE)
@@ -93,29 +144,57 @@ class NotificationRecorderService : NotificationListenerService() {
             subText = extras.getCharSequence(Notification.EXTRA_SUB_TEXT)?.toString()?.trim().orEmpty()
             bigText = extras.getCharSequence(Notification.EXTRA_BIG_TEXT)?.toString()?.trim().orEmpty()
 
-            // Handle MessagingStyle array ("android.messages" / EXTRA_MESSAGES) for WhatsApp
+            // 2. MessagingStyle HANDLING (WhatsApp, Telegram, Signal, Messenger, Messages)
+            // When multiple unread messages exist, Android bundles ALL unread messages into "android.messages".
+            // We extract ONLY the new (unprocessed) messages so previous unread messages are NOT re-sent!
             try {
                 val messagesParcelables = extras.getParcelableArray("android.messages")
                 if (!messagesParcelables.isNullOrEmpty()) {
-                    val extractedMessages = mutableListOf<String>()
+                    val allMessages = mutableListOf<ParsedMessageItem>()
                     for (item in messagesParcelables) {
-                        if (item is android.os.Bundle) {
-                            val msgText = item.getCharSequence("text")?.toString()?.trim()
-                            val sender = item.getCharSequence("sender")?.toString()?.trim()
-                            if (!msgText.isNullOrBlank()) {
-                                if (!sender.isNullOrBlank()) {
-                                    extractedMessages.add("$sender: $msgText")
-                                } else {
-                                    extractedMessages.add(msgText)
-                                }
+                        if (item is Bundle) {
+                            val msgText = item.getCharSequence("text")?.toString()?.trim().orEmpty()
+                            val sender = item.getCharSequence("sender")?.toString()?.trim().orEmpty()
+                            val msgTime = item.getLong("time", 0L)
+                            if (msgText.isNotBlank()) {
+                                allMessages.add(ParsedMessageItem(sender = sender, text = msgText, time = msgTime))
                             }
                         }
                     }
-                    if (extractedMessages.isNotEmpty()) {
-                        val fullExtracted = extractedMessages.distinct().joinToString("\n")
-                        if (fullExtracted.isNotBlank()) {
-                            bigText = if (bigText.isNotBlank()) "$bigText\n$fullExtracted" else fullExtracted
-                            if (text.isBlank()) text = extractedMessages.last()
+
+                    if (allMessages.isNotEmpty()) {
+                        // Find messages that haven't been processed yet
+                        val newMessages = allMessages.filter { msg ->
+                            val msgKey = "$packageName|${title}|${msg.sender}|${msg.text}|${msg.time}"
+                            !processedMessagesCache.containsKey(msgKey)
+                        }
+
+                        if (newMessages.isEmpty()) {
+                            // All messages in this notification have already been recorded/sent previously!
+                            // This is just an unread notification re-trigger from Android OS.
+                            Log.d("Famly", "Abaikan pembaruan unread: Semua pesan di $packageName [$title] sudah diproses.")
+                            return
+                        }
+
+                        // Mark new messages as processed
+                        for (msg in newMessages) {
+                            val msgKey = "$packageName|${title}|${msg.sender}|${msg.text}|${msg.time}"
+                            processedMessagesCache[msgKey] = now
+                        }
+
+                        // Formulate the new message text from ONLY the new incoming messages
+                        text = if (newMessages.size == 1) {
+                            newMessages.first().text
+                        } else {
+                            newMessages.joinToString("\n") { msg ->
+                                if (msg.sender.isNotBlank() && msg.sender != title) "${msg.sender}: ${msg.text}" else msg.text
+                            }
+                        }
+                        
+                        bigText = text
+                        val latestTime = newMessages.last().time
+                        if (latestTime > 0) {
+                            effectivePostTime = latestTime
                         }
                     }
                 }
@@ -123,25 +202,63 @@ class NotificationRecorderService : NotificationListenerService() {
                 Log.e("Famly", "Gagal memproses android.messages: ${e.message}")
             }
 
-            // Handle EXTRA_TEXT_LINES if text is still blank
-            if (text.isBlank()) {
+            // 3. Handle InboxStyle EXTRA_TEXT_LINES if text is blank or a generic summary
+            if (text.isBlank() || isGenericSummaryText(text)) {
                 val textLines = extras.getCharSequenceArray(Notification.EXTRA_TEXT_LINES)
                 if (!textLines.isNullOrEmpty()) {
-                    text = textLines.joinToString("\n") { it.toString() }.trim()
+                    val newLines = mutableListOf<String>()
+                    for (line in textLines) {
+                        val lineStr = line.toString().trim()
+                        if (lineStr.isNotBlank() && !isGenericSummaryText(lineStr)) {
+                            val lineKey = "$packageName|$title|$lineStr"
+                            if (!processedMessagesCache.containsKey(lineKey)) {
+                                processedMessagesCache[lineKey] = now
+                                newLines.add(lineStr)
+                            }
+                        }
+                    }
+
+                    if (newLines.isNotEmpty()) {
+                        text = newLines.joinToString("\n")
+                    } else if (isGenericSummaryText(text)) {
+                        // All lines already seen and text is only summary (e.g. "2 pesan baru")
+                        Log.d("Famly", "Abaikan notifikasi ringkasan unread berulang: $packageName -> $text")
+                        return
+                    }
                 }
+            }
+        }
+
+        // 4. Ignore pure generic summary text (e.g. "2 pesan baru", "3 messages from 2 chats")
+        if (isGenericSummaryText(text)) {
+            val tickerText = notification.tickerText?.toString()?.trim().orEmpty()
+            if (tickerText.isNotBlank() && !isGenericSummaryText(tickerText)) {
+                text = tickerText
+            } else {
+                Log.d("Famly", "Abaikan notifikasi generic summary murni: $packageName [$title] -> $text")
+                return
             }
         }
 
         // Fallback to tickerText if title and text are still empty
         val tickerText = notification.tickerText?.toString()?.trim().orEmpty()
         if (title.isBlank() && text.isBlank()) {
-            if (tickerText.isNotBlank()) {
+            if (tickerText.isNotBlank() && !isGenericSummaryText(tickerText)) {
                 text = tickerText
             } else {
-                // If notification has no text content at all (purely silent icon/badge), ignore
+                // If notification has no valid text content, ignore
                 return
             }
         }
+
+        // 5. Signature-based Deduplication Check (Prevents exact duplicate notification spam)
+        val signatureKey = "$packageName|${title.trim()}|${text.trim()}"
+        val lastSeenSignature = processedNotificationSignatures[signatureKey]
+        if (lastSeenSignature != null && (now - lastSeenSignature) < 3_600_000L) { // 1 hour duplicate window
+            Log.d("Famly", "Abaikan duplikasi notifikasi (1 jam): $signatureKey")
+            return
+        }
+        processedNotificationSignatures[signatureKey] = now
 
         // Custom label mapping for WhatsApp and WhatsApp Business
         val appName = when (packageName) {
@@ -176,9 +293,8 @@ class NotificationRecorderService : NotificationListenerService() {
         }
 
         val baseKey = sbn.key ?: "${packageName}_${sbn.id}"
-        val postTime = if (sbn.postTime > 0) sbn.postTime else System.currentTimeMillis()
 
-        Log.d("Famly", "📥 Notifikasi Ditangkap -> [$appName ($packageName)]: $title | $text")
+        Log.d("Famly", "📥 Notifikasi Baru Ditangkap -> [$appName ($packageName)]: $title | $text")
 
         serviceScope.launch {
             try {
@@ -190,7 +306,7 @@ class NotificationRecorderService : NotificationListenerService() {
                     text = text,
                     subText = subText,
                     bigText = bigText,
-                    postTime = postTime
+                    postTime = effectivePostTime
                 )
             } catch (e: Exception) {
                 Log.e("Famly", "Gagal menyimpan notifikasi dari $packageName", e)
@@ -202,3 +318,4 @@ class NotificationRecorderService : NotificationListenerService() {
         super.onNotificationRemoved(sbn)
     }
 }
+

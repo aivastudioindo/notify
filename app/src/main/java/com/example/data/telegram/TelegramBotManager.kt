@@ -368,19 +368,19 @@ class TelegramBotManager(private val context: Context) {
             return@withContext false
         }
 
-        // Deduplication filter: prevent identical messages within 12 seconds
+        // Deduplication filter: prevent identical messages within 30 minutes (1,800,000 ms)
         val dedupeKey = "${appName.trim()}|${title.trim()}|${text.trim()}"
         val now = System.currentTimeMillis()
         val lastSent = recentSentNotifications[dedupeKey]
-        if (lastSent != null && (now - lastSent) < 12_000L) {
+        if (lastSent != null && (now - lastSent) < 1_800_000L) {
             Log.d("TelegramBotManager", "Duplikasi pesan Telegram dicegah untuk: $dedupeKey")
             return@withContext true
         }
         recentSentNotifications[dedupeKey] = now
 
         // Clean up old cache entries periodically
-        if (recentSentNotifications.size > 200) {
-            val cutoff = now - 60_000L
+        if (recentSentNotifications.size > 500) {
+            val cutoff = now - 3_600_000L // 1 hour
             recentSentNotifications.entries.removeIf { it.value < cutoff }
         }
 

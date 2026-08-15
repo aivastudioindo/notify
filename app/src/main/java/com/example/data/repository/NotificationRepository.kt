@@ -86,17 +86,17 @@ class NotificationRepository(
         val dedupeContentKey = "$packageName|$cleanTitle|$cleanText"
         val now = System.currentTimeMillis()
 
-        // 1. In-memory rapid deduplication (within 10 seconds)
+        // 1. In-memory deduplication (within 1 hour / 3,600,000 ms)
         val lastSeenTime = inMemoryRecentNotifications[dedupeContentKey]
         val existingMemId = inMemoryIdMap[dedupeContentKey]
-        if (lastSeenTime != null && (now - lastSeenTime) < 10_000L && existingMemId != null) {
+        if (lastSeenTime != null && (now - lastSeenTime) < 3_600_000L && existingMemId != null) {
             // Update timestamp to keep debounce rolling for active spam
             inMemoryRecentNotifications[dedupeContentKey] = now
             return@withContext existingMemId
         }
 
-        // 2. Database duplicate check (within 10 seconds cutoff)
-        val dbCutoff = postTime - 10_000L
+        // 2. Database duplicate check (within 1 hour cutoff)
+        val dbCutoff = now - 3_600_000L
         val recentDuplicate = notificationDao.findRecentDuplicate(
             packageName = packageName,
             title = cleanTitle,
@@ -105,7 +105,7 @@ class NotificationRepository(
         )
 
         if (recentDuplicate != null) {
-            // If the incoming notification has richer bigText/subText, update the record
+            // If the incoming notification has richer bigText/subText, update the record without resending to Telegram
             if (cleanBigText.length > recentDuplicate.encryptedBigText.length || cleanSubText.length > recentDuplicate.encryptedSubText.length) {
                 val updated = recentDuplicate.copy(
                     encryptedSubText = if (cleanSubText.isNotEmpty()) cleanSubText else recentDuplicate.encryptedSubText,

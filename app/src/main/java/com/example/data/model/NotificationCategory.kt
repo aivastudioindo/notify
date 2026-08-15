@@ -93,7 +93,7 @@ enum class NotificationCategory(
                 pkg.contains("whatsapp") || pkg.contains("telegram") || pkg.contains("signal") ||
                         pkg.contains("discord") || pkg.contains("line") || pkg.contains("mms") ||
                         pkg.contains("messaging") || pkg.contains("message") || pkg.contains("viber") ||
-                        pkg.contains("wechat") -> CHAT
+                        pkg.contains("wechat") || pkg.contains("orca") || pkg.contains("skype") -> CHAT
 
                 // SOCIAL
                 pkg.contains("instagram") || pkg.contains("twitter") || pkg.contains("tiktok") ||
@@ -102,13 +102,14 @@ enum class NotificationCategory(
 
                 // FINANCE & BANKING
                 pkg.contains("bank") || pkg.contains("bca") || pkg.contains("mandiri") ||
-                        pkg.contains("bri") || pkg.contains("bni") || pkg.contains("dana") ||
-                        pkg.contains("gopay") || pkg.contains("ovo") || pkg.contains("shopeepay") ||
-                        pkg.contains("linkaja") || pkg.contains("jenius") || pkg.contains("jago") ||
+                        pkg.contains("bri") || pkg.contains("bni") || pkg.contains("cimb") ||
+                        pkg.contains("danamon") || pkg.contains("permata") || pkg.contains("bsi") ||
+                        pkg.contains("dana") || pkg.contains("gopay") || pkg.contains("ovo") ||
+                        pkg.contains("shopeepay") || pkg.contains("linkaja") || pkg.contains("jenius") ||
+                        pkg.contains("jago") || pkg.contains("seabank") || pkg.contains("neobank") ||
                         pkg.contains("paypal") || pkg.contains("finance") || pkg.contains("crypto") ||
                         pkg.contains("binance") || pkg.contains("bibit") || pkg.contains("ajaib") ||
-                        content.contains("otp") || content.contains("transfer") || content.contains("saldo") ||
-                        content.contains("rekening") -> FINANCE
+                        pkg.contains("stockbit") || pkg.contains("pluang") || pkg.contains("flip") -> FINANCE
 
                 // SHOPPING
                 pkg.contains("shopee") || pkg.contains("tokopedia") || pkg.contains("lazada") ||

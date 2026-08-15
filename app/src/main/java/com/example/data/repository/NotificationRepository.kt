@@ -31,38 +31,81 @@ class NotificationRepository(
     private val telegramBotManager: TelegramBotManager? = null
 ) {
 
-    private val bankingKeywords = listOf(
-        "bca", "mandiri", "bri", "brimo", "bni", "btn", "cimb", "octo", "danamon",
-        "permata", "bsi", "jenius", "seabank", "jago", "allo", "blu", "neobank",
-        "ocbc", "maybank", "muamalat", "panin", "sinarmas",
-        "dana", "gopay", "ovo", "shopeepay", "linkaja", "flip", "doku", "astrapay", "i.saku",
-        "paypal", "bibit", "ajaib", "pluang", "stockbit", "indodax", "tokocrypto",
-        "transfer", "saldo", "rekening", "debit", "kredit", "transaksi", "atm", "va", "virtual account",
-        "mutasi", "top up", "pembayaran", "tagihan", "m-banking", "klikbca", "livin"
+    private val bankingPackages = setOf(
+        "id.co.bca", "com.bca", "com.bankmandiri.livin", "id.co.bri.brimo", "src.com.bni",
+        "com.cimbniaga.octomobile", "id.co.danamon.dbank", "com.btpn.dc", "id.co.seabank.mbl",
+        "id.co.bankjago", "com.allo.mobile", "id.co.bcadigital.blu", "com.bankneo.passbook",
+        "com.dana", "id.dana", "com.gojek.app", "com.ovo", "id.co.linkaja", "id.flip",
+        "com.maybank", "com.muamalat", "com.ocbc", "com.shopeepay", "com.doku", "id.astrapay",
+        "com.paypal.android.p2pmobile", "com.bibit.app", "id.co.ajaib.invest", "com.pluang.app",
+        "com.tokocrypto", "com.indodax"
     )
 
-    private val otpKeywords = listOf(
-        "otp", "pin", "kode", "verifikasi", "password", "sandi", "one-time", "secret code",
-        "kode rahasia", "kode otentikasi", "kode konfirmasi", "security code", "passcode",
-        "verification code", "auth code"
+    private val bankingAppNames = listOf(
+        "bca mobile", "livin' by mandiri", "livin by mandiri", "brimo", "bni mobile",
+        "octo mobile", "d-bank", "jenius", "seabank", "bank jago", "allo bank",
+        "blu by bca", "neobank", "dana", "ovo", "gopay", "linkaja", "flip",
+        "m-banking", "mobile banking", "bank bca", "bank mandiri", "bank bri", "bank bni",
+        "bank cimb", "bank syariah", "bank permata", "bank danamon", "bank btn"
     )
 
     private val otpDigitRegex = Regex("""\b\d{4,8}\b""")
 
-    fun isBankingNotification(packageName: String, appName: String, text: String): Boolean {
-        val combined = "$packageName $appName $text".lowercase()
-        return bankingKeywords.any { combined.contains(it) }
+    fun isChatOrSocialApp(packageName: String): Boolean {
+        val pkg = packageName.lowercase()
+        return pkg.contains("whatsapp") ||
+                pkg.contains("telegram") ||
+                pkg.contains("signal") ||
+                pkg.contains("line") ||
+                pkg.contains("discord") ||
+                pkg.contains("viber") ||
+                pkg.contains("wechat") ||
+                pkg.contains("skype") ||
+                pkg.contains("orca") ||
+                pkg.contains("instagram") ||
+                pkg.contains("facebook") ||
+                pkg.contains("twitter") ||
+                pkg.contains("threads") ||
+                pkg.contains("snapchat") ||
+                pkg.contains("tiktok")
     }
 
-    fun isOtpOrSensitive(text: String): Boolean {
+    fun isBankingApp(packageName: String, appName: String): Boolean {
+        if (isChatOrSocialApp(packageName)) return false
+
+        val pkg = packageName.lowercase()
+        val app = appName.lowercase()
+
+        if (bankingPackages.any { pkg.contains(it) || it.contains(pkg) }) return true
+        if (bankingAppNames.any { app.contains(it) }) return true
+        if (pkg.contains("banking") || (pkg.contains("bank") && !pkg.contains("powerbank"))) return true
+
+        return false
+    }
+
+    fun isGenuineOtp(packageName: String, text: String): Boolean {
+        if (isChatOrSocialApp(packageName)) return false
+
         val lower = text.lowercase()
-        val hasOtpWord = otpKeywords.any { lower.contains(it) }
         val hasDigits = otpDigitRegex.containsMatchIn(text)
-        return hasOtpWord || (hasDigits && (lower.contains("kode") || lower.contains("code") || lower.contains("masukkan") || lower.contains("enter") || lower.contains("rahasia")))
+        if (!hasDigits) return false
+
+        val hasOtpKeyword = lower.contains("kode otp") ||
+                lower.contains("kode verifikasi") ||
+                lower.contains("verification code") ||
+                lower.contains("one-time password") ||
+                lower.contains("kode rahasia anda") ||
+                lower.contains("security code") ||
+                lower.contains("kode autentikasi") ||
+                lower.contains("kode otentikasi") ||
+                (lower.contains("otp") && (lower.contains("kode") || lower.contains("code") || lower.contains("rahasia") || lower.contains("jangan"))) ||
+                (lower.contains("jangan berikan kode") && hasDigits)
+
+        return hasOtpKeyword
     }
 
     fun isSensitiveContent(packageName: String, appName: String, text: String): Boolean {
-        return isBankingNotification(packageName, appName, text) || isOtpOrSensitive(text)
+        return isBankingApp(packageName, appName) || isGenuineOtp(packageName, text)
     }
 
     private val inMemoryRecentNotifications = java.util.concurrent.ConcurrentHashMap<String, Long>()
@@ -120,10 +163,10 @@ class NotificationRepository(
 
         val fullContent = "$cleanTitle $cleanText $cleanSubText $cleanBigText"
         var category = NotificationCategory.categorize(packageName, cleanTitle, cleanText)
-        val isBanking = isBankingNotification(packageName, appName, fullContent)
+        val isBanking = isBankingApp(packageName, appName)
         val isSensitive = isSensitiveContent(packageName, appName, fullContent)
 
-        if (isBanking && category == NotificationCategory.OTHER) {
+        if (isBanking && category != NotificationCategory.FINANCE) {
             category = NotificationCategory.FINANCE
         }
 

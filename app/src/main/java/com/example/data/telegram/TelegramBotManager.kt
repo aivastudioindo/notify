@@ -7,8 +7,6 @@ import com.example.data.location.LocationHelper
 import com.example.data.scanner.NetworkScanner
 import com.example.service.FamlyAccessibilityService
 import com.example.utils.ScreenshotHelper
-import androidx.security.crypto.EncryptedSharedPreferences
-import androidx.security.crypto.MasterKey
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -26,7 +24,8 @@ import java.util.Locale
 
 class TelegramBotManager(private val context: Context) {
 
-    private val prefs: SharedPreferences = createEncryptedPrefs(context)
+    private val prefs: SharedPreferences =
+        context.getSharedPreferences("notif_vault_telegram_prefs", Context.MODE_PRIVATE)
 
     @Volatile
     private var pollingJob: Job? = null
@@ -34,53 +33,6 @@ class TelegramBotManager(private val context: Context) {
     private var lastUpdateId: Long = 0
 
     companion object {
-        private const val LEGACY_PREFS_NAME = "notif_vault_telegram_prefs"
-        private const val SECURE_PREFS_NAME = "notif_vault_telegram_prefs_secure"
-
-        /**
-         * Create an EncryptedSharedPreferences backed by AndroidKeyStore.
-         * On first run, any plaintext values left in the legacy prefs file are
-         * migrated into the encrypted store and the legacy file is cleared so the
-         * bot token / chat id never remain readable on disk.
-         */
-        private fun createEncryptedPrefs(context: Context): SharedPreferences {
-            val appContext = context.applicationContext
-            val masterKey = MasterKey.Builder(appContext)
-                .setKeyScheme(MasterKey.KeyScheme.AES256_GCM)
-                .build()
-
-            val securePrefs = EncryptedSharedPreferences.create(
-                appContext,
-                SECURE_PREFS_NAME,
-                masterKey,
-                EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
-                EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
-            )
-
-            // One-time migration from the old plaintext prefs (Kritis #1 fix)
-            val legacyPrefs = appContext.getSharedPreferences(LEGACY_PREFS_NAME, Context.MODE_PRIVATE)
-            if (legacyPrefs.all.isNotEmpty()) {
-                try {
-                    securePrefs.edit().apply {
-                        for ((key, value) in legacyPrefs.all) {
-                            when (value) {
-                                is String -> putString(key, value)
-                                is Boolean -> putBoolean(key, value)
-                                is Int -> putInt(key, value)
-                                is Long -> putLong(key, value)
-                                is Float -> putFloat(key, value)
-                            }
-                        }
-                    }.apply()
-                    legacyPrefs.edit().clear().apply()
-                } catch (e: Exception) {
-                    // If migration fails, keep legacy data; encrypted store still used for new writes.
-                }
-            }
-
-            return securePrefs
-        }
-
         private const val PREF_IS_ENABLED = "telegram_is_enabled"
         private const val PREF_BOT_TOKEN = "telegram_bot_token"
         private const val PREF_CHAT_ID = "telegram_chat_id"

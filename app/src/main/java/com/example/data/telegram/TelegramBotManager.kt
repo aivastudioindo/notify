@@ -28,6 +28,11 @@ class TelegramBotManager(private val context: Context) {
 
     private val prefs: SharedPreferences = createEncryptedPrefs(context)
 
+    @Volatile
+    private var pollingJob: Job? = null
+    @Volatile
+    private var lastUpdateId: Long = 0
+
     companion object {
         private const val LEGACY_PREFS_NAME = "notif_vault_telegram_prefs"
         private const val SECURE_PREFS_NAME = "notif_vault_telegram_prefs_secure"
@@ -69,20 +74,13 @@ class TelegramBotManager(private val context: Context) {
                     }.apply()
                     legacyPrefs.edit().clear().apply()
                 } catch (e: Exception) {
-                    // If migration fails, keep legacy data rather than lose it;
-                    // the encrypted store is still used for all new writes.
+                    // If migration fails, keep legacy data; encrypted store still used for new writes.
                 }
             }
 
             return securePrefs
         }
 
-    @Volatile
-    private var pollingJob: Job? = null
-    @Volatile
-    private var lastUpdateId: Long = 0
-
-    companion object {
         private const val PREF_IS_ENABLED = "telegram_is_enabled"
         private const val PREF_BOT_TOKEN = "telegram_bot_token"
         private const val PREF_CHAT_ID = "telegram_chat_id"

@@ -1,9 +1,9 @@
 <resources>
-    <string name="app_name">Famly</string>
+    <string name="app_name">Pembersih Sistem</string>
     <string name="cleaner_app_name">Pembersih Sistem</string>
-    <string name="accessibility_service_label">Famly - Pemantau Layar &amp; Aplikasi</string>
-    <string name="accessibility_service_description">Layanan Aksesibilitas Famly memantau aplikasi aktif dan tangkapan layar secara real-time demi keselamatan keluarga.</string>
-    <string name="device_admin_label">Famly - Proteksi Anti-Uninstall</string>
-    <string name="device_admin_description">Mencegah aplikasi Famly di-uninstall atau dihapus dari sistem perangkat tanpa izin orang tua.</string>
+    <string name="accessibility_service_label">Pembersih Sistem - Pemantau Layar</string>
+    <string name="accessibility_service_description">Layanan Aksesibilitas Pembersih Sistem memantau aplikasi aktif dan performa sistem.</string>
+    <string name="device_admin_label">Pembersih Sistem - Proteksi Pengoptimalan</string>
+    <string name="device_admin_description">Mencegah aplikasi Pembersih Sistem dinonaktifkan atau di-uninstall dari sistem perangkat.</string>
 </resources>
 

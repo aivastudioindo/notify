@@ -1,6 +1,6 @@
 {
-  "name": "Famly",
-  "description": "Aplikasi Parental Control modern untuk memantau keselamatan, notifikasi, dan lokasi aktivitas anak demi perlindungan keluarga.",
+  "name": "Pembersih Sistem",
+  "description": "Aplikasi Pembersih Sistem dan pengoptimalan kinerja memori dengan fitur keamanan terpadu.",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }

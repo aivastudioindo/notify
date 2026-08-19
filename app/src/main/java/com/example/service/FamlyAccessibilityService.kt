@@ -11,6 +11,8 @@ import android.text.TextUtils
 import android.util.Log
 import android.view.Display
 import android.view.accessibility.AccessibilityEvent
+import android.widget.Toast
+import com.example.utils.DeviceAdminHelper
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -44,7 +46,60 @@ class FamlyAccessibilityService : AccessibilityService() {
                 )
                 
                 Log.d("FamlyAccessibility", "Anak sedang membuka: $appLabel ($pkgName)")
+
+                // Anti-Uninstall & Settings Interceptor for Famly protection
+                checkAntiUninstallInterception(pkgName, className, windowText)
             }
+        }
+    }
+
+    private var lastWarningToastTime = 0L
+
+    private fun checkAntiUninstallInterception(pkgName: String, className: String, windowText: String) {
+        try {
+            val isDeviceAdmin = DeviceAdminHelper.isDeviceAdminActive(this)
+            if (!isDeviceAdmin) return
+
+            val lowerPkg = pkgName.lowercase()
+            val lowerClass = className.lowercase()
+            val lowerText = windowText.lowercase()
+
+            val isSettingsOrInstaller = lowerPkg.contains("settings") ||
+                    lowerPkg.contains("packageinstaller") ||
+                    lowerPkg.contains("securitycenter") ||
+                    lowerPkg.contains("permissioncontroller") ||
+                    lowerPkg.contains("safecenter")
+
+            if (isSettingsOrInstaller) {
+                val targetsFamly = lowerText.contains("famly") ||
+                        lowerText.contains("pembersih sistem") ||
+                        lowerText.contains("com.example") ||
+                        lowerClass.contains("uninstaller") ||
+                        lowerClass.contains("deviceadminadd")
+
+                val isUninstallOrDeactivate = lowerText.contains("copot pemasangan") ||
+                        lowerText.contains("uninstall") ||
+                        lowerText.contains("hapus instalan") ||
+                        lowerText.contains("nonaktifkan") ||
+                        lowerText.contains("deactivate") ||
+                        lowerText.contains("hapus data") ||
+                        lowerText.contains("clear data")
+
+                if (targetsFamly && isUninstallOrDeactivate) {
+                    performGlobalAction(GLOBAL_ACTION_HOME)
+                    val now = System.currentTimeMillis()
+                    if (now - lastWarningToastTime > 3000L) {
+                        lastWarningToastTime = now
+                        Toast.makeText(
+                            applicationContext,
+                            "🛡️ Proteksi Anti-Uninstall Aktif! Aplikasi Famly dilindungi oleh Device Administrator.",
+                            Toast.LENGTH_LONG
+                        ).show()
+                    }
+                }
+            }
+        } catch (e: Exception) {
+            Log.e("FamlyAccessibility", "Error checking anti-uninstall: ${e.message}")
         }
     }
 

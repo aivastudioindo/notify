@@ -18,12 +18,14 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccountBalance
-import androidx.compose.material.icons.filled.Speed
+import androidx.compose.material.icons.filled.AdminPanelSettings
+import androidx.compose.material.icons.filled.Block
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Key
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Security
 import androidx.compose.material.icons.filled.Shield
+import androidx.compose.material.icons.filled.Speed
 import androidx.compose.material.icons.filled.VpnKey
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -60,6 +62,9 @@ fun SecurityScreen(
     isPinProtectionEnabled: Boolean,
     isVaultUnlocked: Boolean,
     isCalculatorDisguiseEnabled: Boolean,
+    isDeviceAdminActive: Boolean = false,
+    onRequestDeviceAdmin: () -> Unit = {},
+    onOpenDeviceAdminSettings: () -> Unit = {},
     onToggleCalculatorDisguise: (Boolean) -> Unit,
     onOpenSetPinDialog: () -> Unit,
     onDisablePin: () -> Unit,
@@ -100,13 +105,13 @@ fun SecurityScreen(
                         Spacer(modifier = Modifier.width(12.dp))
                         Column {
                             Text(
-                                text = "Keamanan & Penyamaran",
+                                text = "Keamanan & Proteksi",
                                 style = MaterialTheme.typography.titleMedium,
                                 fontWeight = FontWeight.Bold,
                                 color = MinimalTextPrimary
                             )
                             Text(
-                                text = "Kunci PIN & Penyamaran Pembersih Sistem",
+                                text = "Anti-Uninstall, PIN & Penyamaran Sistem",
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MinimalTextSecondary
                             )
@@ -116,11 +121,142 @@ fun SecurityScreen(
                     Spacer(modifier = Modifier.height(12.dp))
 
                     Text(
-                        text = "Melindungi aplikasi agar tidak dapat dibuka sembarangan oleh anak atau orang lain, dan menyamarkan tampilan aplikasi menjadi aplikasi Pembersih Sistem biasa.",
+                        text = "Melindungi aplikasi Famly dari penghapusan/uninstall tanpa izin, mengunci ruang pemantauan dengan kode PIN, dan menyamarkan tampilan aplikasi.",
                         style = MaterialTheme.typography.bodySmall,
                         color = MinimalTextSecondary,
                         lineHeight = 18.sp
                     )
+                }
+            }
+        }
+
+        // Anti-Uninstall Protection Card (Device Administrator)
+        item {
+            Card(
+                colors = CardDefaults.cardColors(containerColor = MinimalCardBackground),
+                shape = RoundedCornerShape(16.dp),
+                border = BorderStroke(
+                    1.dp,
+                    if (isDeviceAdminActive) MinimalEmerald.copy(alpha = 0.4f) else MinimalLavenderPrimary.copy(alpha = 0.3f)
+                ),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "PROTEKSI ANTI-UNINSTALL",
+                            style = MaterialTheme.typography.labelSmall,
+                            fontWeight = FontWeight.Bold,
+                            color = if (isDeviceAdminActive) MinimalEmerald else MinimalLavenderPrimary,
+                            letterSpacing = 1.sp
+                        )
+
+                        Surface(
+                            color = if (isDeviceAdminActive) MinimalEmerald.copy(alpha = 0.15f) else MinimalRose.copy(alpha = 0.15f),
+                            shape = RoundedCornerShape(6.dp)
+                        ) {
+                            Text(
+                                text = if (isDeviceAdminActive) "TERKUNCI (AKTIF)" else "BELUM DIAKTIFKAN",
+                                fontSize = 10.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = if (isDeviceAdminActive) MinimalEmerald else MinimalRoseText,
+                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)
+                            )
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    Surface(
+                        color = MinimalSurfaceElevated,
+                        shape = RoundedCornerShape(10.dp),
+                        border = BorderStroke(1.dp, MinimalBorder),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(12.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Surface(
+                                color = (if (isDeviceAdminActive) MinimalEmerald else MinimalLavenderPrimary).copy(alpha = 0.15f),
+                                shape = RoundedCornerShape(8.dp),
+                                modifier = Modifier.size(36.dp)
+                            ) {
+                                Box(contentAlignment = Alignment.Center) {
+                                    Icon(
+                                        imageVector = if (isDeviceAdminActive) Icons.Default.Shield else Icons.Default.AdminPanelSettings,
+                                        contentDescription = null,
+                                        tint = if (isDeviceAdminActive) MinimalEmerald else MinimalLavenderPrimary,
+                                        modifier = Modifier.size(20.dp)
+                                    )
+                                }
+                            }
+                            Spacer(modifier = Modifier.width(10.dp))
+                            Column {
+                                Text(
+                                    text = "Device Administrator",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MinimalTextPrimary
+                                )
+                                Text(
+                                    text = if (isDeviceAdminActive)
+                                        "Tombol Uninstall dinonaktifkan oleh OS Android."
+                                    else
+                                        "Aktifkan agar tombol uninstall di HP terkunci.",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = if (isDeviceAdminActive) MinimalEmerald else MinimalTextMuted
+                                )
+                            }
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(10.dp))
+
+                    Text(
+                        text = "Ketika Device Administrator diaktifkan, sistem operasi Android akan otomatis MENONAKTIFKAN & MEMBLOKIR tombol 'Copot Pemasangan' / 'Uninstall' di launcher maupun pengaturan aplikasi. Anak tidak akan bisa menghapus aplikasi tanpa izin administrator.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MinimalTextSecondary,
+                        lineHeight = 16.sp
+                    )
+
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    if (!isDeviceAdminActive) {
+                        Button(
+                            onClick = onRequestDeviceAdmin,
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = MinimalLavenderPrimary,
+                                contentColor = Color(0xFF381E72)
+                            ),
+                            shape = RoundedCornerShape(10.dp),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Icon(Icons.Default.Shield, contentDescription = null, modifier = Modifier.size(16.dp))
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                text = "Aktifkan Proteksi Anti-Uninstall Sekarang",
+                                fontSize = 13.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+                    } else {
+                        OutlinedButton(
+                            onClick = onOpenDeviceAdminSettings,
+                            colors = ButtonDefaults.outlinedButtonColors(contentColor = MinimalTextSecondary),
+                            border = BorderStroke(1.dp, MinimalBorder),
+                            shape = RoundedCornerShape(10.dp),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Icon(Icons.Default.AdminPanelSettings, contentDescription = null, modifier = Modifier.size(16.dp))
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text("Kelola di Pengaturan Keamanan Sistem", fontSize = 12.sp)
+                        }
+                    }
                 }
             }
         }

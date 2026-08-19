@@ -66,12 +66,16 @@ import com.example.ui.theme.MinimalTextMuted
 import com.example.ui.theme.MinimalTextPrimary
 import com.example.ui.theme.MinimalTextSecondary
 
+import androidx.compose.material.icons.filled.AdminPanelSettings
+
 @Composable
 fun PermissionsScreen(
     hasNotificationAccess: Boolean,
     hasLocationPermission: Boolean,
     hasBackgroundLocationPermission: Boolean,
     isIgnoringBatteryOptimizations: Boolean,
+    isDeviceAdminActive: Boolean = false,
+    onRequestDeviceAdmin: () -> Unit = {},
     onOpenNotificationSettings: () -> Unit,
     onRequestSystemPermissions: () -> Unit,
     onRequestBatteryOptimization: () -> Unit,
@@ -86,10 +90,11 @@ fun PermissionsScreen(
         hasLocationPermission,
         hasBackgroundLocationPermission,
         isIgnoringBatteryOptimizations,
-        hasAccessibilityPermission
+        hasAccessibilityPermission,
+        isDeviceAdminActive
     ).count { it } + 1 // +1 for basic network/system permissions
 
-    val totalCount = 6
+    val totalCount = 7
     val progress = grantedCount.toFloat() / totalCount.toFloat()
     val isFullyConfigured = grantedCount == totalCount
 
@@ -300,6 +305,19 @@ fun PermissionsScreen(
                 buttonText = "Kelola Autostart OEM",
                 onClickAction = onOpenAutostart,
                 isInfoOnly = true
+            )
+        }
+
+        // Permission Card 7: Device Administrator (Anti-Uninstall)
+        item {
+            PermissionCardItem(
+                title = "7. Proteksi Anti-Uninstall (Device Admin)",
+                category = "Keamanan & Penguncian Sistem",
+                description = "Mengunci dan menonaktifkan tombol 'Copot Pemasangan' / 'Uninstall' di Android agar aplikasi tidak bisa dihapus oleh anak.",
+                isGranted = isDeviceAdminActive,
+                icon = Icons.Default.AdminPanelSettings,
+                buttonText = if (isDeviceAdminActive) "Proteksi Terkunci (Aktif)" else "Aktifkan Anti-Uninstall",
+                onClickAction = onRequestDeviceAdmin
             )
         }
 

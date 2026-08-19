@@ -462,12 +462,22 @@ private fun AppMainScaffold(
 
                 NavDestination.PERMISSIONS -> {
                     val hasNotificationAccess by viewModel.hasNotificationAccess.collectAsState()
+                    val isDeviceAdminActive by viewModel.isDeviceAdminActive.collectAsState()
+                    val activity = scaffoldContext as? android.app.Activity
 
                     PermissionsScreen(
                         hasNotificationAccess = hasNotificationAccess,
                         hasLocationPermission = viewModel.hasLocationPermission(),
                         hasBackgroundLocationPermission = viewModel.hasBackgroundLocationPermission(),
                         isIgnoringBatteryOptimizations = viewModel.isIgnoringBatteryOptimizations(),
+                        isDeviceAdminActive = isDeviceAdminActive,
+                        onRequestDeviceAdmin = {
+                            if (activity != null) {
+                                viewModel.requestDeviceAdmin(activity)
+                            } else {
+                                viewModel.openDeviceAdminSettings()
+                            }
+                        },
                         onOpenNotificationSettings = { viewModel.openNotificationSettings() },
                         onRequestSystemPermissions = onRequestSystemPermissions,
                         onRequestBatteryOptimization = { com.example.utils.AutostartHelper.requestDisableBatteryOptimization(scaffoldContext) },
@@ -544,11 +554,22 @@ private fun AppMainScaffold(
 
                 NavDestination.SECURITY -> {
                     val isCalculatorDisguiseEnabled by viewModel.isCalculatorDisguiseEnabled.collectAsState()
+                    val isDeviceAdminActive by viewModel.isDeviceAdminActive.collectAsState()
+                    val activity = scaffoldContext as? android.app.Activity
 
                     SecurityScreen(
                         isPinProtectionEnabled = isPinProtectionEnabled,
                         isVaultUnlocked = isVaultUnlocked,
                         isCalculatorDisguiseEnabled = isCalculatorDisguiseEnabled,
+                        isDeviceAdminActive = isDeviceAdminActive,
+                        onRequestDeviceAdmin = {
+                            if (activity != null) {
+                                viewModel.requestDeviceAdmin(activity)
+                            } else {
+                                viewModel.openDeviceAdminSettings()
+                            }
+                        },
+                        onOpenDeviceAdminSettings = { viewModel.openDeviceAdminSettings() },
                         onToggleCalculatorDisguise = { enabled ->
                             viewModel.setCalculatorDisguise(enabled)
                         },

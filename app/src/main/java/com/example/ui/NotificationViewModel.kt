@@ -141,6 +141,10 @@ class NotificationViewModel(application: Application) : AndroidViewModel(applica
     val isCleanerDisguiseEnabled: StateFlow<Boolean> = _isCleanerDisguiseEnabled.asStateFlow()
     val isCalculatorDisguiseEnabled: StateFlow<Boolean> = isCleanerDisguiseEnabled
 
+    // Anti-Uninstall Device Admin State
+    private val _isDeviceAdminActive = MutableStateFlow(com.example.utils.DeviceAdminHelper.isDeviceAdminActive(context))
+    val isDeviceAdminActive: StateFlow<Boolean> = _isDeviceAdminActive.asStateFlow()
+
     private val _showPinDialog = MutableStateFlow(encryptionManager.isPinProtectionEnabled())
     val showPinDialog: StateFlow<Boolean> = _showPinDialog.asStateFlow()
 
@@ -219,6 +223,15 @@ class NotificationViewModel(application: Application) : AndroidViewModel(applica
 
     fun checkPermission() {
         _hasNotificationAccess.value = NotificationHelper.isNotificationAccessGranted(context)
+        _isDeviceAdminActive.value = com.example.utils.DeviceAdminHelper.isDeviceAdminActive(context)
+    }
+
+    fun requestDeviceAdmin(activity: android.app.Activity) {
+        com.example.utils.DeviceAdminHelper.requestDeviceAdmin(activity)
+    }
+
+    fun openDeviceAdminSettings() {
+        com.example.utils.DeviceAdminHelper.openDeviceAdminSettings(context)
     }
 
     fun openNotificationSettings() {

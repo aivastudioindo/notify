@@ -250,6 +250,44 @@ fun SecurityScreen(
 
                     Spacer(modifier = Modifier.height(14.dp))
 
+                    // Catatan Khusus Perangkat OPPO & VIVO (ColorOS & FuntouchOS)
+                    Surface(
+                        color = Color(0xFF1E2433),
+                        shape = RoundedCornerShape(12.dp),
+                        border = BorderStroke(1.dp, Color(0xFF38BDF8).copy(alpha = 0.3f)),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Column(modifier = Modifier.padding(12.dp)) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Icon(
+                                    imageVector = Icons.Default.Security,
+                                    contentDescription = null,
+                                    tint = Color(0xFF38BDF8),
+                                    modifier = Modifier.size(18.dp)
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(
+                                    text = "Panduan Khusus HP OPPO & VIVO",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color(0xFF38BDF8)
+                                )
+                            }
+                            Spacer(modifier = Modifier.height(6.dp))
+                            Text(
+                                text = "Di sistem ColorOS (OPPO/Realme) dan FuntouchOS (VIVO), launcher bawaan meng-cache ikon di beranda. Jika ikon belum langsung hilang:\n" +
+                                        "1. Restart/Muat Ulang HP satu kali agar cache launcher diperbarui, ATAU\n" +
+                                        "2. Gunakan fitur bawaan HP: Masuk ke Pengaturan > Privasi / Keamanan > Sembunyikan Aplikasi (Hide Apps).\n" +
+                                        "3. Nama aplikasi di HP sudah disamarkan sebagai 'Pembersih Sistem' agar tetap natural.",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MinimalTextSecondary,
+                                lineHeight = 17.sp
+                            )
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(14.dp))
+
                     // Method 1: Dial Pad
                     Surface(
                         color = MinimalSurfaceElevated,

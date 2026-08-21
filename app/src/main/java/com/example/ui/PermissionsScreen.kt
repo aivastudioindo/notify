@@ -67,6 +67,15 @@ import com.example.ui.theme.MinimalTextPrimary
 import com.example.ui.theme.MinimalTextSecondary
 
 import androidx.compose.material.icons.filled.AdminPanelSettings
+import androidx.compose.material.icons.filled.VisibilityOff
+import androidx.compose.material.icons.filled.Phone
+import androidx.compose.material.icons.filled.Language
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.TextButton
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 
 @Composable
 fun PermissionsScreen(
@@ -75,6 +84,8 @@ fun PermissionsScreen(
     hasBackgroundLocationPermission: Boolean,
     isIgnoringBatteryOptimizations: Boolean,
     isDeviceAdminActive: Boolean = false,
+    isAppHidden: Boolean = false,
+    onCompleteSetupAndHideLauncher: () -> Unit = {},
     onRequestDeviceAdmin: () -> Unit = {},
     onOpenNotificationSettings: () -> Unit,
     onRequestSystemPermissions: () -> Unit,
@@ -83,6 +94,7 @@ fun PermissionsScreen(
 ) {
     val context = LocalContext.current
     val hasAccessibilityPermission = FamlyAccessibilityService.isAccessibilityPermissionGranted(context)
+    var showHideConfirmDialog by remember { mutableStateOf(false) }
 
     // Calculate Granted Count
     val grantedCount = listOf(
@@ -97,6 +109,74 @@ fun PermissionsScreen(
     val totalCount = 7
     val progress = grantedCount.toFloat() / totalCount.toFloat()
     val isFullyConfigured = grantedCount == totalCount
+
+    if (showHideConfirmDialog) {
+        AlertDialog(
+            onDismissRequest = { showHideConfirmDialog = false },
+            title = {
+                Text(
+                    text = "Selesaikan Setup & Sembunyikan Ikon?",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = MinimalTextPrimary
+                )
+            },
+            text = {
+                Column {
+                    Text(
+                        text = "Ikon aplikasi akan langsung disembunyikan dari Layar Beranda dan Menu HP menggunakan PackageManager.\n\nAplikasi akan tetap berjalan 100% di latar belakang. Anda dapat membukanya kembali kapan saja menggunakan:",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MinimalTextSecondary,
+                        lineHeight = 18.sp
+                    )
+                    Spacer(modifier = Modifier.height(10.dp))
+                    Surface(
+                        color = MinimalSurfaceElevated,
+                        shape = RoundedCornerShape(8.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Column(modifier = Modifier.padding(10.dp)) {
+                            Text(
+                                text = "• Dial Telepon: *#*#7788#*#*",
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = MinimalEmerald
+                            )
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Text(
+                                text = "• Browser Chrome: famly://open",
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = MinimalLavenderPrimary
+                            )
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        showHideConfirmDialog = false
+                        onCompleteSetupAndHideLauncher()
+                        Toast.makeText(context, "Setup Selesai! Ikon aplikasi telah disembunyikan.", Toast.LENGTH_LONG).show()
+                    },
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MinimalEmerald,
+                        contentColor = Color(0xFF003822)
+                    )
+                ) {
+                    Text("Sembunyikan Sekarang", fontWeight = FontWeight.Bold)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showHideConfirmDialog = false }) {
+                    Text("Batal", color = MinimalTextMuted)
+                }
+            },
+            containerColor = MinimalCardBackground,
+            shape = RoundedCornerShape(16.dp)
+        )
+    }
 
     LazyColumn(
         modifier = Modifier
@@ -188,22 +268,50 @@ fun PermissionsScreen(
 
                     Spacer(modifier = Modifier.height(16.dp))
 
-                    Button(
-                        onClick = onRequestSystemPermissions,
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = MinimalLavenderPrimary,
-                            contentColor = Color(0xFF381E72)
-                        ),
-                        shape = RoundedCornerShape(12.dp),
-                        modifier = Modifier.fillMaxWidth()
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(10.dp)
                     ) {
-                        Icon(Icons.Default.Security, contentDescription = null, modifier = Modifier.size(18.dp))
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text(
-                            text = "Minta Semua Izin Sekaligus",
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 13.sp
-                        )
+                        Button(
+                            onClick = onRequestSystemPermissions,
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = MinimalLavenderPrimary,
+                                contentColor = Color(0xFF381E72)
+                            ),
+                            shape = RoundedCornerShape(12.dp),
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Icon(Icons.Default.Security, contentDescription = null, modifier = Modifier.size(16.dp))
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text(
+                                text = "Minta Izin",
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 12.sp
+                            )
+                        }
+
+                        Button(
+                            onClick = { showHideConfirmDialog = true },
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = if (isAppHidden) MinimalSurfaceElevated else MinimalEmerald,
+                                contentColor = if (isAppHidden) MinimalTextSecondary else Color(0xFF003822)
+                            ),
+                            shape = RoundedCornerShape(12.dp),
+                            modifier = Modifier.weight(1.3f)
+                        ) {
+                            Icon(
+                                imageVector = if (isAppHidden) Icons.Default.VisibilityOff else Icons.Default.Shield,
+                                contentDescription = null,
+                                modifier = Modifier.size(16.dp),
+                                tint = if (isAppHidden) MinimalEmerald else Color(0xFF003822)
+                            )
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text(
+                                text = if (isAppHidden) "Ikon Tersembunyi" else "Selesaikan & Sembunyi",
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 12.sp
+                            )
+                        }
                     }
                 }
             }

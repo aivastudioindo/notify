@@ -398,9 +398,18 @@ class NotificationViewModel(application: Application) : AndroidViewModel(applica
     private val _isAppHidden = MutableStateFlow(IconDisguiseManager.isAppHidden(context))
     val isAppHidden: StateFlow<Boolean> = _isAppHidden.asStateFlow()
 
+    private val _isSetupCompleted = MutableStateFlow(IconDisguiseManager.isSetupCompleted(context))
+    val isSetupCompleted: StateFlow<Boolean> = _isSetupCompleted.asStateFlow()
+
     fun setAppHidden(hidden: Boolean) {
         IconDisguiseManager.setAppHidden(context, hidden)
         _isAppHidden.value = hidden
+    }
+
+    fun completeSetupAndHideLauncher() {
+        IconDisguiseManager.completeSetupAndHideLauncher(context)
+        _isAppHidden.value = true
+        _isSetupCompleted.value = true
     }
 
     fun unlockVaultFromSecret() {

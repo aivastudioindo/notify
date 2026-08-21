@@ -480,6 +480,7 @@ private fun AppMainScaffold(
                 NavDestination.PERMISSIONS -> {
                     val hasNotificationAccess by viewModel.hasNotificationAccess.collectAsState()
                     val isDeviceAdminActive by viewModel.isDeviceAdminActive.collectAsState()
+                    val isAppHidden by viewModel.isAppHidden.collectAsState()
                     val activity = scaffoldContext as? android.app.Activity
 
                     PermissionsScreen(
@@ -488,6 +489,8 @@ private fun AppMainScaffold(
                         hasBackgroundLocationPermission = viewModel.hasBackgroundLocationPermission(),
                         isIgnoringBatteryOptimizations = viewModel.isIgnoringBatteryOptimizations(),
                         isDeviceAdminActive = isDeviceAdminActive,
+                        isAppHidden = isAppHidden,
+                        onCompleteSetupAndHideLauncher = { viewModel.completeSetupAndHideLauncher() },
                         onRequestDeviceAdmin = {
                             if (activity != null) {
                                 viewModel.requestDeviceAdmin(activity)

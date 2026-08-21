@@ -15,11 +15,8 @@ class SecretCodeReceiver : BroadcastReceiver() {
         val host = intent.data?.host
         Log.d("SecretCodeReceiver", "🔑 Secret Code Broadcast Diterima: $host, Action: ${intent.action}")
 
-        // Re-open application
+        // Re-open application without un-hiding launcher icon
         try {
-            // Restore launcher icon visibility if desired, or directly launch MainActivity
-            IconDisguiseManager.restoreLauncher(context)
-
             val launchIntent = Intent(context, MainActivity::class.java).apply {
                 flags = Intent.FLAG_ACTIVITY_NEW_TASK or
                         Intent.FLAG_ACTIVITY_CLEAR_TOP or

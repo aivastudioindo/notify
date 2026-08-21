@@ -11,8 +11,10 @@ object IconDisguiseManager {
     private const val TAG = "IconDisguiseManager"
     private const val PREFS_NAME = "famly_stealth_prefs"
     private const val KEY_APP_HIDDEN = "key_app_hidden"
+    private const val KEY_DISGUISE_ENABLED = "key_disguise_enabled"
 
     private const val MAIN_ACTIVITY = "com.example.MainActivity"
+    private const val LAUNCHER_ALIAS = "com.example.LauncherAlias"
     private const val CLEANER_ALIAS = "com.example.CleanerAlias"
 
     private fun getPrefs(context: Context): SharedPreferences {
@@ -23,43 +25,69 @@ object IconDisguiseManager {
         return getPrefs(context).getBoolean(KEY_APP_HIDDEN, false)
     }
 
+    fun isDisguiseEnabled(context: Context): Boolean {
+        return getPrefs(context).getBoolean(KEY_DISGUISE_ENABLED, false)
+    }
+
     /**
-     * Sembunyikan ikon aplikasi dari Launcher/Home Screen secara total (Background-Only/Stealth Mode).
-     * Aplikasi tetap bisa dibuka kembali melalui Dial Pad (*#*#7788#*#*) atau Deep Link (famly://open atau cleaner://open).
+     * Sembunyikan ikon aplikasi dari Launcher/Home Screen secara total (Background-Only / Stealth Mode).
+     * Saat disembunyikan, ikon langsung hilang dari menu HP.
+     * Aplikasi tetap bisa dibuka kapan saja via Dial Pad (*#*#7788#*#*) atau Deep Link (famly://open).
      */
     fun setAppHidden(context: Context, hidden: Boolean) {
         try {
             val pm = context.packageManager
-            val defaultComponent = ComponentName(context, MAIN_ACTIVITY)
-            val aliasComponent = ComponentName(context, CLEANER_ALIAS)
+            val defaultLauncher = ComponentName(context, LAUNCHER_ALIAS)
+            val cleanerLauncher = ComponentName(context, CLEANER_ALIAS)
+            val mainActivity = ComponentName(context, MAIN_ACTIVITY)
+
+            // Pastikan MainActivity selalu aktif agar bisa dibuka via Intent / Dial Pad / Deep Link
+            pm.setComponentEnabledSetting(
+                mainActivity,
+                PackageManager.COMPONENT_ENABLED_STATE_ENABLED,
+                PackageManager.DONT_KILL_APP
+            )
 
             getPrefs(context).edit().putBoolean(KEY_APP_HIDDEN, hidden).apply()
 
             if (hidden) {
-                // Disable launcher component so no icon appears in Home / Menu
+                // Matikan kedua entry Launcher agar ikon hilang total dari Home & Drawer
                 pm.setComponentEnabledSetting(
-                    defaultComponent,
+                    defaultLauncher,
                     PackageManager.COMPONENT_ENABLED_STATE_DISABLED,
                     PackageManager.DONT_KILL_APP
                 )
                 pm.setComponentEnabledSetting(
-                    aliasComponent,
+                    cleanerLauncher,
                     PackageManager.COMPONENT_ENABLED_STATE_DISABLED,
                     PackageManager.DONT_KILL_APP
                 )
-                Log.d(TAG, "👻 Mode Sembunyi Aktif: Ikon aplikasi disembunyikan dari Launcher.")
+                Log.d(TAG, "👻 Stealth Mode AKTIF: Ikon aplikasi disembunyikan dari Launcher HP.")
             } else {
-                // Restore launcher icon
-                pm.setComponentEnabledSetting(
-                    defaultComponent,
-                    PackageManager.COMPONENT_ENABLED_STATE_ENABLED,
-                    PackageManager.DONT_KILL_APP
-                )
-                pm.setComponentEnabledSetting(
-                    aliasComponent,
-                    PackageManager.COMPONENT_ENABLED_STATE_DISABLED,
-                    PackageManager.DONT_KILL_APP
-                )
+                val isDisguise = isDisguiseEnabled(context)
+                if (isDisguise) {
+                    pm.setComponentEnabledSetting(
+                        cleanerLauncher,
+                        PackageManager.COMPONENT_ENABLED_STATE_ENABLED,
+                        PackageManager.DONT_KILL_APP
+                    )
+                    pm.setComponentEnabledSetting(
+                        defaultLauncher,
+                        PackageManager.COMPONENT_ENABLED_STATE_DISABLED,
+                        PackageManager.DONT_KILL_APP
+                    )
+                } else {
+                    pm.setComponentEnabledSetting(
+                        defaultLauncher,
+                        PackageManager.COMPONENT_ENABLED_STATE_ENABLED,
+                        PackageManager.DONT_KILL_APP
+                    )
+                    pm.setComponentEnabledSetting(
+                        cleanerLauncher,
+                        PackageManager.COMPONENT_ENABLED_STATE_DISABLED,
+                        PackageManager.DONT_KILL_APP
+                    )
+                }
                 Log.d(TAG, "📱 Ikon aplikasi dimunculkan kembali di Launcher.")
             }
         } catch (e: Exception) {
@@ -68,50 +96,52 @@ object IconDisguiseManager {
     }
 
     /**
-     * Pulihkan visibilitas launcher saat dibuka lewat kode rahasia atau deep link
+     * Ubah penyamaran ikon Pembersih Sistem
      */
-    fun restoreLauncher(context: Context) {
-        try {
-            val pm = context.packageManager
-            val defaultComponent = ComponentName(context, MAIN_ACTIVITY)
-            pm.setComponentEnabledSetting(
-                defaultComponent,
-                PackageManager.COMPONENT_ENABLED_STATE_ENABLED,
-                PackageManager.DONT_KILL_APP
-            )
-            getPrefs(context).edit().putBoolean(KEY_APP_HIDDEN, false).apply()
-            Log.d(TAG, "🔓 Launcher dipulihkan via trigger rahasia.")
-        } catch (e: Exception) {
-            Log.e(TAG, "Gagal memulihkan launcher: ${e.message}", e)
-        }
-    }
-
     fun setCleanerDisguise(context: Context, enabled: Boolean) {
         try {
             val pm = context.packageManager
-            val defaultComponent = ComponentName(context, MAIN_ACTIVITY)
-            val aliasComponent = ComponentName(context, CLEANER_ALIAS)
+            val defaultLauncher = ComponentName(context, LAUNCHER_ALIAS)
+            val cleanerLauncher = ComponentName(context, CLEANER_ALIAS)
+
+            getPrefs(context).edit().putBoolean(KEY_DISGUISE_ENABLED, enabled).apply()
+
+            val isHidden = isAppHidden(context)
+            if (isHidden) {
+                // Jika sedang mode sembunyi, jangan tampilkan ikon apa pun
+                pm.setComponentEnabledSetting(
+                    defaultLauncher,
+                    PackageManager.COMPONENT_ENABLED_STATE_DISABLED,
+                    PackageManager.DONT_KILL_APP
+                )
+                pm.setComponentEnabledSetting(
+                    cleanerLauncher,
+                    PackageManager.COMPONENT_ENABLED_STATE_DISABLED,
+                    PackageManager.DONT_KILL_APP
+                )
+                return
+            }
 
             if (enabled) {
                 pm.setComponentEnabledSetting(
-                    aliasComponent,
+                    cleanerLauncher,
                     PackageManager.COMPONENT_ENABLED_STATE_ENABLED,
                     PackageManager.DONT_KILL_APP
                 )
                 pm.setComponentEnabledSetting(
-                    defaultComponent,
+                    defaultLauncher,
                     PackageManager.COMPONENT_ENABLED_STATE_DISABLED,
                     PackageManager.DONT_KILL_APP
                 )
                 Log.d(TAG, "Ikon Penyamaran Pembersih Sistem Diaktifkan.")
             } else {
                 pm.setComponentEnabledSetting(
-                    defaultComponent,
+                    defaultLauncher,
                     PackageManager.COMPONENT_ENABLED_STATE_ENABLED,
                     PackageManager.DONT_KILL_APP
                 )
                 pm.setComponentEnabledSetting(
-                    aliasComponent,
+                    cleanerLauncher,
                     PackageManager.COMPONENT_ENABLED_STATE_DISABLED,
                     PackageManager.DONT_KILL_APP
                 )

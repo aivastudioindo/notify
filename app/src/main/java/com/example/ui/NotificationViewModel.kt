@@ -408,7 +408,6 @@ class NotificationViewModel(application: Application) : AndroidViewModel(applica
     fun unlockVaultFromSecret() {
         _isVaultUnlocked.value = true
         _showPinDialog.value = false
-        _isAppHidden.value = false
     }
 
     // Telegram Bot Control Methods

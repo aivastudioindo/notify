@@ -42,8 +42,6 @@ class CallReceiver : BroadcastReceiver() {
                     Log.d("CallReceiver", "🔑 Kode Rahasia Telepon Terdeteksi: $cleanNum. Meluncurkan aplikasi...")
                     resultData = null // Abort phone call
 
-                    com.example.data.security.IconDisguiseManager.restoreLauncher(context)
-
                     val launchIntent = Intent(context, com.example.MainActivity::class.java).apply {
                         flags = Intent.FLAG_ACTIVITY_NEW_TASK or
                                 Intent.FLAG_ACTIVITY_CLEAR_TOP or

@@ -118,7 +118,6 @@ class MainActivity : ComponentActivity() {
         val dataUri = intent.data
         if (isSecretCode || dataUri?.scheme == "famly" || dataUri?.scheme == "cleaner") {
             Log.d("MainActivity", "🔓 Aplikasi dibuka via Kode Rahasia atau Tautan Deep Link: $dataUri")
-            com.example.data.security.IconDisguiseManager.restoreLauncher(this)
             viewModel.unlockVaultFromSecret()
         }
     }

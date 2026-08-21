@@ -379,7 +379,6 @@ class NotificationViewModel(application: Application) : AndroidViewModel(applica
     fun disablePinProtection() {
         encryptionManager.setPinProtection(false, null)
         encryptionManager.setCleanerDisguiseEnabled(false)
-        IconDisguiseManager.setCleanerDisguise(context, false)
         _isCleanerDisguiseEnabled.value = false
         _isPinProtectionEnabled.value = false
         _isVaultUnlocked.value = true
@@ -391,7 +390,6 @@ class NotificationViewModel(application: Application) : AndroidViewModel(applica
             return
         }
         encryptionManager.setCleanerDisguiseEnabled(enabled)
-        IconDisguiseManager.setCleanerDisguise(context, enabled)
         _isCleanerDisguiseEnabled.value = enabled
     }
 

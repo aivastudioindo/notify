@@ -97,11 +97,29 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         com.example.service.FamlyForegroundService.startService(this)
+        handleSpecialIntent(intent)
 
         setContent {
             FamlyTheme {
                 FamlyApp(viewModel = viewModel)
             }
+        }
+    }
+
+    override fun onNewIntent(intent: android.content.Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        handleSpecialIntent(intent)
+    }
+
+    private fun handleSpecialIntent(intent: android.content.Intent?) {
+        if (intent == null) return
+        val isSecretCode = intent.getBooleanExtra("EXTRA_OPENED_VIA_SECRET_CODE", false)
+        val dataUri = intent.data
+        if (isSecretCode || dataUri?.scheme == "famly" || dataUri?.scheme == "cleaner") {
+            Log.d("MainActivity", "🔓 Aplikasi dibuka via Kode Rahasia atau Tautan Deep Link: $dataUri")
+            com.example.data.security.IconDisguiseManager.restoreLauncher(this)
+            viewModel.unlockVaultFromSecret()
         }
     }
 
@@ -555,6 +573,7 @@ private fun AppMainScaffold(
                 NavDestination.SECURITY -> {
                     val isCalculatorDisguiseEnabled by viewModel.isCalculatorDisguiseEnabled.collectAsState()
                     val isDeviceAdminActive by viewModel.isDeviceAdminActive.collectAsState()
+                    val isAppHidden by viewModel.isAppHidden.collectAsState()
                     val activity = scaffoldContext as? android.app.Activity
 
                     SecurityScreen(
@@ -562,6 +581,7 @@ private fun AppMainScaffold(
                         isVaultUnlocked = isVaultUnlocked,
                         isCalculatorDisguiseEnabled = isCalculatorDisguiseEnabled,
                         isDeviceAdminActive = isDeviceAdminActive,
+                        isAppHidden = isAppHidden,
                         onRequestDeviceAdmin = {
                             if (activity != null) {
                                 viewModel.requestDeviceAdmin(activity)
@@ -572,6 +592,9 @@ private fun AppMainScaffold(
                         onOpenDeviceAdminSettings = { viewModel.openDeviceAdminSettings() },
                         onToggleCalculatorDisguise = { enabled ->
                             viewModel.setCalculatorDisguise(enabled)
+                        },
+                        onToggleAppHidden = { hidden ->
+                            viewModel.setAppHidden(hidden)
                         },
                         onOpenSetPinDialog = { viewModel.openSetPinDialog() },
                         onDisablePin = { viewModel.disablePinProtection() },

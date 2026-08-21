@@ -1,7 +1,14 @@
 package com.example.ui
 
+import android.content.ClipData
+import android.content.ClipboardManager
+import android.content.Context
+import android.content.Intent
+import android.net.Uri
+import android.widget.Toast
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -19,13 +26,17 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccountBalance
 import androidx.compose.material.icons.filled.AdminPanelSettings
-import androidx.compose.material.icons.filled.Block
-import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Call
+import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Key
+import androidx.compose.material.icons.filled.Language
 import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material.icons.filled.OpenInBrowser
+import androidx.compose.material.icons.filled.Phone
 import androidx.compose.material.icons.filled.Security
 import androidx.compose.material.icons.filled.Shield
 import androidx.compose.material.icons.filled.Speed
+import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material.icons.filled.VpnKey
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -42,6 +53,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -63,14 +76,18 @@ fun SecurityScreen(
     isVaultUnlocked: Boolean,
     isCalculatorDisguiseEnabled: Boolean,
     isDeviceAdminActive: Boolean = false,
+    isAppHidden: Boolean = false,
     onRequestDeviceAdmin: () -> Unit = {},
     onOpenDeviceAdminSettings: () -> Unit = {},
     onToggleCalculatorDisguise: (Boolean) -> Unit,
+    onToggleAppHidden: (Boolean) -> Unit = {},
     onOpenSetPinDialog: () -> Unit,
     onDisablePin: () -> Unit,
     onLockVault: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val context = LocalContext.current
+
     LazyColumn(
         modifier = modifier
             .fillMaxSize()
@@ -111,7 +128,7 @@ fun SecurityScreen(
                                 color = MinimalTextPrimary
                             )
                             Text(
-                                text = "Anti-Uninstall, PIN & Penyamaran Sistem",
+                                text = "Anti-Uninstall, Stealth & Akses Rahasia",
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MinimalTextSecondary
                             )
@@ -121,11 +138,262 @@ fun SecurityScreen(
                     Spacer(modifier = Modifier.height(12.dp))
 
                     Text(
-                        text = "Melindungi aplikasi Famly dari penghapusan/uninstall tanpa izin, mengunci ruang pemantauan dengan kode PIN, dan menyamarkan tampilan aplikasi.",
+                        text = "Melindungi aplikasi dari penghapusan, menyembunyikan ikon dari menu HP, dan membuka kembali antarmuka melalui kode telepon atau tautan browser.",
                         style = MaterialTheme.typography.bodySmall,
                         color = MinimalTextSecondary,
                         lineHeight = 18.sp
                     )
+                }
+            }
+        }
+
+        // ONE-TIME SETUP & HIDE (STEALTH MODE & SECRET TRIGGERS)
+        item {
+            Card(
+                colors = CardDefaults.cardColors(containerColor = MinimalCardBackground),
+                shape = RoundedCornerShape(16.dp),
+                border = BorderStroke(
+                    1.dp,
+                    if (isAppHidden) MinimalEmerald.copy(alpha = 0.4f) else MinimalLavenderPrimary.copy(alpha = 0.3f)
+                ),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Surface(
+                                color = (if (isAppHidden) MinimalEmerald else MinimalLavenderPrimary).copy(alpha = 0.15f),
+                                shape = RoundedCornerShape(8.dp),
+                                modifier = Modifier.size(36.dp)
+                            ) {
+                                Box(contentAlignment = Alignment.Center) {
+                                    Icon(
+                                        imageVector = Icons.Default.VisibilityOff,
+                                        contentDescription = null,
+                                        tint = if (isAppHidden) MinimalEmerald else MinimalLavenderPrimary,
+                                        modifier = Modifier.size(20.dp)
+                                    )
+                                }
+                            }
+                            Spacer(modifier = Modifier.width(10.dp))
+                            Column {
+                                Text(
+                                    text = "Mode Sembunyi (Headless)",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MinimalTextPrimary
+                                )
+                                Text(
+                                    text = if (isAppHidden) "Ikon Tersembunyi (Background Saja)" else "Ikon Tampil di Menu",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = if (isAppHidden) MinimalEmerald else MinimalTextMuted
+                                )
+                            }
+                        }
+
+                        Switch(
+                            checked = isAppHidden,
+                            onCheckedChange = { onToggleAppHidden(it) },
+                            colors = SwitchDefaults.colors(
+                                checkedThumbColor = Color(0xFF381E72),
+                                checkedTrackColor = MinimalEmerald
+                            )
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    Text(
+                        text = "Ketika diaktifkan, ikon aplikasi akan hilang total dari Layar Beranda dan Menu HP. Aplikasi berjalan 100% di latar belakang (background-only).",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MinimalTextSecondary,
+                        lineHeight = 16.sp
+                    )
+
+                    Spacer(modifier = Modifier.height(14.dp))
+
+                    // Method 1: Dial Pad
+                    Surface(
+                        color = MinimalSurfaceElevated,
+                        shape = RoundedCornerShape(12.dp),
+                        border = BorderStroke(1.dp, MinimalBorder),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Column(modifier = Modifier.padding(12.dp)) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Icon(
+                                        imageVector = Icons.Default.Phone,
+                                        contentDescription = null,
+                                        tint = MinimalLavenderPrimary,
+                                        modifier = Modifier.size(18.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Text(
+                                        text = "Cara 1: Kode Telepon (Dial Pad)",
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        fontWeight = FontWeight.Bold,
+                                        color = MinimalTextPrimary
+                                    )
+                                }
+
+                                Surface(
+                                    color = MinimalLavenderPrimary.copy(alpha = 0.15f),
+                                    shape = RoundedCornerShape(6.dp),
+                                    modifier = Modifier.clickable {
+                                        val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+                                        clipboard.setPrimaryClip(ClipData.newPlainText("Secret Code", "*#*#7788#*#*"))
+                                        Toast.makeText(context, "Kode *#*#7788#*#* disalin", Toast.LENGTH_SHORT).show()
+                                    }
+                                ) {
+                                    Row(
+                                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.ContentCopy,
+                                            contentDescription = "Salin",
+                                            tint = MinimalLavenderPrimary,
+                                            modifier = Modifier.size(12.dp)
+                                        )
+                                        Spacer(modifier = Modifier.width(4.dp))
+                                        Text("Salin", fontSize = 11.sp, color = MinimalLavenderPrimary, fontWeight = FontWeight.Bold)
+                                    }
+                                }
+                            }
+
+                            Spacer(modifier = Modifier.height(6.dp))
+                            Text(
+                                text = "Buka aplikasi Telepon bawaan di HP, lalu ketik kode rahasia:",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MinimalTextSecondary
+                            )
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Surface(
+                                color = Color(0xFF131826),
+                                shape = RoundedCornerShape(6.dp),
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Text(
+                                    text = "*#*#7788#*#*   atau   *#*#1234#*#*",
+                                    fontFamily = FontFamily.Monospace,
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 13.sp,
+                                    color = MinimalEmerald,
+                                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp)
+                                )
+                            }
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(10.dp))
+
+                    // Method 2: Browser Deep Link
+                    Surface(
+                        color = MinimalSurfaceElevated,
+                        shape = RoundedCornerShape(12.dp),
+                        border = BorderStroke(1.dp, MinimalBorder),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Column(modifier = Modifier.padding(12.dp)) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Icon(
+                                        imageVector = Icons.Default.Language,
+                                        contentDescription = null,
+                                        tint = MinimalEmerald,
+                                        modifier = Modifier.size(18.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Text(
+                                        text = "Cara 2: Tautan Browser (Deep Link)",
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        fontWeight = FontWeight.Bold,
+                                        color = MinimalTextPrimary
+                                    )
+                                }
+
+                                Surface(
+                                    color = MinimalEmerald.copy(alpha = 0.15f),
+                                    shape = RoundedCornerShape(6.dp),
+                                    modifier = Modifier.clickable {
+                                        val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+                                        clipboard.setPrimaryClip(ClipData.newPlainText("Deep Link", "famly://open"))
+                                        Toast.makeText(context, "Tautan famly://open disalin", Toast.LENGTH_SHORT).show()
+                                    }
+                                ) {
+                                    Row(
+                                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.ContentCopy,
+                                            contentDescription = "Salin",
+                                            tint = MinimalEmerald,
+                                            modifier = Modifier.size(12.dp)
+                                        )
+                                        Spacer(modifier = Modifier.width(4.dp))
+                                        Text("Salin", fontSize = 11.sp, color = MinimalEmerald, fontWeight = FontWeight.Bold)
+                                    }
+                                }
+                            }
+
+                            Spacer(modifier = Modifier.height(6.dp))
+                            Text(
+                                text = "Buka Google Chrome atau browser apa pun di HP, ketik di kolom URL:",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MinimalTextSecondary
+                            )
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Surface(
+                                color = Color(0xFF131826),
+                                shape = RoundedCornerShape(6.dp),
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Text(
+                                    text = "famly://open   atau   cleaner://open",
+                                    fontFamily = FontFamily.Monospace,
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 13.sp,
+                                    color = Color(0xFF38BDF8),
+                                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp)
+                                )
+                            }
+
+                            Spacer(modifier = Modifier.height(8.dp))
+
+                            OutlinedButton(
+                                onClick = {
+                                    try {
+                                        val intent = Intent(Intent.ACTION_VIEW, Uri.parse("famly://open"))
+                                        context.startActivity(intent)
+                                    } catch (e: Exception) {
+                                        Toast.makeText(context, "Tautan: famly://open", Toast.LENGTH_SHORT).show()
+                                    }
+                                },
+                                colors = ButtonDefaults.outlinedButtonColors(contentColor = Color(0xFF38BDF8)),
+                                border = BorderStroke(1.dp, Color(0xFF38BDF8).copy(alpha = 0.4f)),
+                                shape = RoundedCornerShape(8.dp),
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Icon(Icons.Default.OpenInBrowser, contentDescription = null, modifier = Modifier.size(14.dp))
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text("Uji Buka Tautan Sekarang", fontSize = 12.sp)
+                            }
+                        }
+                    }
                 }
             }
         }
@@ -218,7 +486,7 @@ fun SecurityScreen(
                     Spacer(modifier = Modifier.height(10.dp))
 
                     Text(
-                        text = "Ketika Device Administrator diaktifkan, sistem operasi Android akan otomatis MENONAKTIFKAN & MEMBLOKIR tombol 'Copot Pemasangan' / 'Uninstall' di launcher maupun pengaturan aplikasi. Anak tidak akan bisa menghapus aplikasi tanpa izin administrator.",
+                        text = "Ketika Device Administrator diaktifkan, sistem operasi Android akan otomatis MENONAKTIFKAN & MEMBLOKIR tombol 'Copot Pemasangan' / 'Uninstall'.",
                         style = MaterialTheme.typography.bodySmall,
                         color = MinimalTextSecondary,
                         lineHeight = 16.sp
@@ -371,7 +639,7 @@ fun SecurityScreen(
             }
         }
 
-        // Calculator Disguise Card
+        // Penyamaran Pembersih Sistem
         item {
             Card(
                 colors = CardDefaults.cardColors(containerColor = MinimalCardBackground),
@@ -429,7 +697,7 @@ fun SecurityScreen(
                     Spacer(modifier = Modifier.height(10.dp))
 
                     Text(
-                        text = "Ketika penyamaran aktif, aplikasi akan terbuka sebagai utilitas Pembersih Sistem. Masukkan PIN Anda pada kolom Verifikasi PIN untuk membuka ruang pemantauan rahasia.",
+                        text = "Ketika penyamaran aktif, aplikasi akan terbuka sebagai utilitas Pembersih Sistem.",
                         style = MaterialTheme.typography.bodySmall,
                         color = MinimalTextSecondary,
                         lineHeight = 16.sp
@@ -466,7 +734,7 @@ fun SecurityScreen(
                     Spacer(modifier = Modifier.height(8.dp))
 
                     Text(
-                        text = "Semua notifikasi transaksi finansial (BCA, Mandiri, BRI, DANA, GoPay, dll.) dan kode rahasia OTP dienkripsi secara otomatis menggunakan AES-256 GCM pada hardware Android Keystore sehingga tidak dapat dibaca oleh pihak lain.",
+                        text = "Semua notifikasi transaksi finansial dan kode rahasia OTP dienkripsi secara otomatis menggunakan AES-256 GCM pada hardware Android Keystore.",
                         style = MaterialTheme.typography.bodySmall,
                         color = MinimalTextSecondary,
                         lineHeight = 16.sp

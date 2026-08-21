@@ -397,6 +397,20 @@ class NotificationViewModel(application: Application) : AndroidViewModel(applica
 
     fun setCalculatorDisguise(enabled: Boolean) = setCleanerDisguise(enabled)
 
+    private val _isAppHidden = MutableStateFlow(IconDisguiseManager.isAppHidden(context))
+    val isAppHidden: StateFlow<Boolean> = _isAppHidden.asStateFlow()
+
+    fun setAppHidden(hidden: Boolean) {
+        IconDisguiseManager.setAppHidden(context, hidden)
+        _isAppHidden.value = hidden
+    }
+
+    fun unlockVaultFromSecret() {
+        _isVaultUnlocked.value = true
+        _showPinDialog.value = false
+        _isAppHidden.value = false
+    }
+
     // Telegram Bot Control Methods
     fun updateTelegramSettings(
         enabled: Boolean,

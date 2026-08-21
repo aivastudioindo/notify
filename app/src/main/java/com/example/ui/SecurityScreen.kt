@@ -36,6 +36,7 @@ import androidx.compose.material.icons.filled.Phone
 import androidx.compose.material.icons.filled.Security
 import androidx.compose.material.icons.filled.Shield
 import androidx.compose.material.icons.filled.Speed
+import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material.icons.filled.VpnKey
 import androidx.compose.material3.Button
@@ -213,6 +214,39 @@ fun SecurityScreen(
                         color = MinimalTextSecondary,
                         lineHeight = 16.sp
                     )
+
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    Button(
+                        onClick = {
+                            val newHiddenState = !isAppHidden
+                            onToggleAppHidden(newHiddenState)
+                            if (newHiddenState) {
+                                Toast.makeText(context, "Ikon berhasil disembunyikan dari Launcher!", Toast.LENGTH_LONG).show()
+                            } else {
+                                Toast.makeText(context, "Ikon dimunculkan kembali di Launcher.", Toast.LENGTH_SHORT).show()
+                            }
+                        },
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = if (isAppHidden) MinimalSurfaceElevated else MinimalEmerald,
+                            contentColor = if (isAppHidden) MinimalTextPrimary else Color(0xFF003822)
+                        ),
+                        shape = RoundedCornerShape(12.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Icon(
+                            imageVector = if (isAppHidden) Icons.Default.Visibility else Icons.Default.VisibilityOff,
+                            contentDescription = null,
+                            modifier = Modifier.size(18.dp),
+                            tint = if (isAppHidden) MinimalEmerald else Color(0xFF003822)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = if (isAppHidden) "Tampilkan Kembali Ikon Aplikasi" else "Sembunyikan Ikon Aplikasi Sekarang",
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 13.sp
+                        )
+                    }
 
                     Spacer(modifier = Modifier.height(14.dp))
 
